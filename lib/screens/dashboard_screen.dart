@@ -1,4 +1,6 @@
 import 'package:finance_tracker/screens/add_expense_screen.dart';
+import '../theme/app_theme.dart';
+import 'package:finance_tracker/screens/all_expenses_screen.dart';
 import 'package:finance_tracker/widgets/expense_card.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -31,18 +33,62 @@ class DashboardScreen extends StatelessWidget {
                               const SizedBox(height: 16),
                               _buildSummaryCard(theme, provider),
                               const SizedBox(height: 24),
-                              _buildRecentHeader(theme),
+                              _buildRecentHeader(context, theme),
                               const SizedBox(height: 16),
                               if (provider.expenses.isEmpty)
                                 _buildEmptyState(theme)
                               else
-                                ...provider.expenses.map(
-                                  (e) => ExpenseCard(
-                                    expense: e,
-                                    usdRate: provider.usdRate,
-                                    eurRate: provider.eurRate,
-                                  ),
-                                ),
+                                ...provider.expenses
+                                    .take(5)
+                                    .map(
+                                      (e) => Dismissible(
+                                        key: Key(e.id),
+                                        direction: DismissDirection.endToStart,
+                                        background: Container(
+                                          margin: const EdgeInsets.only(
+                                            bottom: 12,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.red.withOpacity(0.9),
+                                            borderRadius: BorderRadius.circular(
+                                              24,
+                                            ),
+                                          ),
+                                          alignment: Alignment.centerRight,
+                                          padding: const EdgeInsets.only(
+                                            right: 24,
+                                          ),
+                                          child: const Icon(
+                                            Icons.delete_outline,
+                                            color: Colors.white,
+                                            size: 28,
+                                          ),
+                                        ),
+                                        onDismissed: (direction) {
+                                          provider.deleteExpense(e.id);
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                '${e.name} silindi',
+                                              ),
+                                              action: SnackBarAction(
+                                                label: 'Geri Al',
+                                                onPressed: () {
+                                                  provider.addExpense(e);
+                                                },
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                        child: ExpenseCard(
+                                          expense: e,
+                                          usdRate: provider.usdRate,
+                                          eurRate: provider.eurRate,
+                                        ),
+                                      ),
+                                    ),
                               const SizedBox(height: 100),
                             ],
                           ),
@@ -63,9 +109,25 @@ class DashboardScreen extends StatelessWidget {
                       ),
                     );
                   },
-                  backgroundColor: theme.colorScheme.primary,
+                  backgroundColor: Colors.transparent,
+                  elevation: 0,
                   shape: const CircleBorder(),
-                  child: const Icon(Icons.add, color: Colors.white, size: 32),
+                  child: Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      gradient: AppTheme.mainGradient,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: theme.colorScheme.primary.withOpacity(0.4),
+                          blurRadius: 16,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(Icons.add, color: Colors.white, size: 32),
+                  ),
                 ),
               ),
             ],
@@ -127,8 +189,15 @@ class DashboardScreen extends StatelessWidget {
       width: double.infinity,
       height: 220,
       decoration: BoxDecoration(
-        color: theme.colorScheme.primary,
-        borderRadius: BorderRadius.circular(24),
+        gradient: AppTheme.mainGradient,
+        borderRadius: BorderRadius.circular(32),
+        boxShadow: [
+          BoxShadow(
+            color: theme.colorScheme.primary.withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -189,6 +258,7 @@ class DashboardScreen extends StatelessWidget {
                               style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
+                                color: Colors.white,
                               ),
                             ),
                             const TextSpan(
@@ -224,16 +294,33 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildRecentHeader(ThemeData theme) {
-    return const Row(
+  Widget _buildRecentHeader(BuildContext context, ThemeData theme) {
+    return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
+        const Text(
           'Son Harcamalar',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
             color: Colors.white,
+          ),
+        ),
+        TextButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const AllExpensesScreen(),
+              ),
+            );
+          },
+          child: Text(
+            'Tümünü Gör',
+            style: TextStyle(
+              color: theme.colorScheme.primary,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       ],

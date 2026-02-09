@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:finance_tracker/providers/expense_provider.dart';
+import '../theme/app_theme.dart';
 import 'package:finance_tracker/models/expense.dart';
 
 class AddExpenseScreen extends StatefulWidget {
@@ -412,53 +413,181 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             ),
           ),
         ),
-        DropdownButtonFormField<String>(
-          value: _selectedCategory,
-          style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w500,
-            color: Colors.white,
-          ),
-          dropdownColor: const Color(0xFF1C1C1E),
-          decoration: InputDecoration(
-            prefixIcon: Icon(icon, color: const Color(0xFF71717A), size: 20),
-            filled: true,
-            fillColor: const Color(0xFF1C1C1E),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(color: Colors.white.withOpacity(0.05)),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(color: Colors.white.withOpacity(0.05)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: Color(0xFF2D6AEE), width: 2),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 48,
-              vertical: 18,
-            ),
-          ),
-          icon: const Icon(Icons.expand_more, color: Color(0xFF71717A)),
-          items: const [
-            DropdownMenuItem(
-              value: 'Food & Drinks',
-              child: Text('Yiyecek & İçecek'),
-            ),
-            DropdownMenuItem(value: 'Transportation', child: Text('Ulaşım')),
-            DropdownMenuItem(value: 'Sightseeing', child: Text('Gezi')),
-            DropdownMenuItem(value: 'Shopping', child: Text('Alışveriş')),
-            DropdownMenuItem(value: 'Accommodation', child: Text('Konaklama')),
-          ],
-          onChanged: (val) {
-            if (val != null) {
-              setState(() => _selectedCategory = val);
-            }
+        InkWell(
+          onTap: () {
+            _showCategoryModal(context);
           },
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1C1C1E),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withOpacity(0.05)),
+            ),
+            child: Row(
+              children: [
+                Icon(icon, color: const Color(0xFF71717A), size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    _selectedCategory == 'Food & Drinks'
+                        ? 'Yiyecek & İçecek'
+                        : _selectedCategory == 'Transportation'
+                        ? 'Ulaşım'
+                        : _selectedCategory == 'Sightseeing'
+                        ? 'Gezi'
+                        : _selectedCategory == 'Shopping'
+                        ? 'Alışveriş'
+                        : _selectedCategory == 'Accommodation'
+                        ? 'Konaklama'
+                        : _selectedCategory,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                Text(
+                  _getCategoryIcon(_selectedCategory),
+                  style: const TextStyle(fontSize: 20),
+                ),
+                const SizedBox(width: 8),
+                const Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color: Color(0xFF71717A),
+                ),
+              ],
+            ),
+          ),
         ),
       ],
+    );
+  }
+
+  void _showCategoryModal(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.7,
+        decoration: const BoxDecoration(
+          color: Color(0xFF18181B),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        ),
+        child: Column(
+          children: [
+            const SizedBox(height: 16),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 32),
+            const Text(
+              'Kategori Seçin',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 32),
+            Expanded(
+              child: GridView.count(
+                crossAxisCount: 2,
+                mainAxisSpacing: 16,
+                crossAxisSpacing: 16,
+                padding: const EdgeInsets.all(24),
+                children: [
+                  _buildCategoryItem(
+                    'Food & Drinks',
+                    'Yiyecek & İçecek',
+                    '🍕',
+                    Colors.orange,
+                  ),
+                  _buildCategoryItem(
+                    'Transportation',
+                    'Ulaşım',
+                    '🚕',
+                    Colors.blue,
+                  ),
+                  _buildCategoryItem(
+                    'Sightseeing',
+                    'Gezi',
+                    '🎭',
+                    Colors.deepPurple,
+                  ),
+                  _buildCategoryItem(
+                    'Shopping',
+                    'Alışveriş',
+                    '🛍️',
+                    Colors.pink,
+                  ),
+                  _buildCategoryItem(
+                    'Accommodation',
+                    'Konaklama',
+                    '🏨',
+                    Colors.teal,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategoryItem(String id, String label, String icon, Color color) {
+    final isSelected = _selectedCategory == id;
+    return InkWell(
+      onTap: () {
+        setState(() => _selectedCategory = id);
+        Navigator.pop(context);
+      },
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isSelected ? color.withOpacity(0.2) : const Color(0xFF27272A),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: isSelected ? color : Colors.transparent,
+            width: 2,
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Text(icon, style: const TextStyle(fontSize: 24)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                color: isSelected ? Colors.white : Colors.white70,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -475,10 +604,10 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         child: ElevatedButton(
           onPressed: _saveExpense,
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF2D6AEE),
+            backgroundColor: AppTheme.primaryColor,
             foregroundColor: Colors.white,
             elevation: 0,
-            shadowColor: const Color(0xFF2D6AEE).withOpacity(0.2),
+            shadowColor: AppTheme.primaryColor.withOpacity(0.2),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),

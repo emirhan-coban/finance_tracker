@@ -10,7 +10,24 @@ class AppTheme {
     236,
   ); // Vibrant Blue
   static const Color backgroundDark = Color(0xFF000000); // Deep Black
-  static const Color surfaceDark = Color(0xFF1C1C1E); // iOS System Gray 6
+  static const Color surfaceDark = Color(0xFF18181B); // Zinc 900
+  static const Color surfaceLight = Color(0xFF27272A); // Zinc 800
+
+  // Gradient Colors
+  static const LinearGradient mainGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [
+      Color(0xFF2D6AEE), // Bright Blue
+      Color(0xFF8B5CF6), // Violet
+    ],
+  );
+
+  static const LinearGradient cardGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFF18181B), Color(0xFF27272A)],
+  );
   static const Color borderDark = Color(0xFF2C2C2E);
   static const Color textWhite = Color(0xFFFFFFFF);
   static const Color textSecondary = Color(0xFFA1A1AA);
