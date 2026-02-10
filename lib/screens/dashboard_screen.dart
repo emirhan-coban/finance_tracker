@@ -1,5 +1,6 @@
 import 'package:finance_tracker/screens/add_expense_screen.dart';
 import '../theme/app_theme.dart';
+import 'package:finance_tracker/providers/theme_provider.dart';
 import 'package:finance_tracker/screens/all_expenses_screen.dart';
 import 'package:finance_tracker/widgets/expense_card.dart';
 import 'package:flutter/material.dart';
@@ -22,75 +23,85 @@ class DashboardScreen extends StatelessWidget {
                 bottom: false,
                 child: Column(
                   children: [
-                    _buildHeader(theme, provider),
+                    _buildHeader(context, theme, provider),
                     Expanded(
-                      child: SingleChildScrollView(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(height: 16),
-                              _buildSummaryCard(theme, provider),
-                              const SizedBox(height: 24),
-                              _buildRecentHeader(context, theme),
-                              const SizedBox(height: 16),
-                              if (provider.expenses.isEmpty)
-                                _buildEmptyState(theme)
-                              else
-                                ...provider.expenses
-                                    .take(5)
-                                    .map(
-                                      (e) => Dismissible(
-                                        key: Key(e.id),
-                                        direction: DismissDirection.endToStart,
-                                        background: Container(
-                                          margin: const EdgeInsets.only(
-                                            bottom: 12,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: Colors.red.withOpacity(0.9),
-                                            borderRadius: BorderRadius.circular(
-                                              24,
+                      child: RefreshIndicator(
+                        onRefresh: () async {
+                          await provider.refreshData();
+                        },
+                        child: SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16.0,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(height: 16),
+                                _buildSummaryCard(theme, provider),
+                                const SizedBox(height: 24),
+                                _buildRecentHeader(context, theme),
+                                const SizedBox(height: 16),
+                                if (provider.expenses.isEmpty)
+                                  _buildEmptyState(theme)
+                                else
+                                  ...provider.expenses
+                                      .take(5)
+                                      .map(
+                                        (e) => Dismissible(
+                                          key: Key(e.id),
+                                          direction:
+                                              DismissDirection.endToStart,
+                                          background: Container(
+                                            margin: const EdgeInsets.only(
+                                              bottom: 12,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: Colors.red.withOpacity(
+                                                0.9,
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(24),
+                                            ),
+                                            alignment: Alignment.centerRight,
+                                            padding: const EdgeInsets.only(
+                                              right: 24,
+                                            ),
+                                            child: const Icon(
+                                              Icons.delete_outline,
+                                              color: Colors.white,
+                                              size: 28,
                                             ),
                                           ),
-                                          alignment: Alignment.centerRight,
-                                          padding: const EdgeInsets.only(
-                                            right: 24,
-                                          ),
-                                          child: const Icon(
-                                            Icons.delete_outline,
-                                            color: Colors.white,
-                                            size: 28,
-                                          ),
-                                        ),
-                                        onDismissed: (direction) {
-                                          provider.deleteExpense(e.id);
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
-                                            SnackBar(
-                                              content: Text(
-                                                '${e.name} silindi',
+                                          onDismissed: (direction) {
+                                            provider.deleteExpense(e.id);
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  '${e.name} silindi',
+                                                ),
+                                                action: SnackBarAction(
+                                                  label: 'Geri Al',
+                                                  onPressed: () {
+                                                    provider.addExpense(e);
+                                                  },
+                                                ),
                                               ),
-                                              action: SnackBarAction(
-                                                label: 'Geri Al',
-                                                onPressed: () {
-                                                  provider.addExpense(e);
-                                                },
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                        child: ExpenseCard(
-                                          expense: e,
-                                          usdRate: provider.usdRate,
-                                          eurRate: provider.eurRate,
+                                            );
+                                          },
+                                          child: ExpenseCard(
+                                            expense: e,
+                                            usdRate: provider.usdRate,
+                                            eurRate: provider.eurRate,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                              const SizedBox(height: 100),
-                            ],
+                                const SizedBox(height: 100),
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -137,7 +148,11 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(ThemeData theme, ExpenseProvider provider) {
+  Widget _buildHeader(
+    BuildContext context,
+    ThemeData theme,
+    ExpenseProvider provider,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       child: Row(
@@ -145,36 +160,64 @@ class DashboardScreen extends StatelessWidget {
         children: [
           const Text(
             'Harcamalarım',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.1)),
-            ),
-            child: provider.isLoadingRates
-                ? SizedBox(
-                    width: 12,
-                    height: 12,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
+          Row(
+            children: [
+              IconButton(
+                onPressed: () {
+                  Provider.of<ThemeProvider>(
+                    context,
+                    listen: false,
+                  ).toggleTheme();
+                },
+                icon: Consumer<ThemeProvider>(
+                  builder: (context, themeProvider, _) {
+                    return Icon(
+                      themeProvider.isDarkMode
+                          ? Icons.light_mode_outlined
+                          : Icons.dark_mode_outlined,
                       color: theme.colorScheme.primary,
-                    ),
-                  )
-                : Text(
-                    'USD → TRY ${provider.usdRate.toStringAsFixed(2)}',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.primary,
-                    ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: theme.brightness == Brightness.dark
+                      ? Colors.white.withOpacity(0.05)
+                      : Colors.black.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: theme.brightness == Brightness.dark
+                        ? Colors.white.withOpacity(0.1)
+                        : Colors.black.withOpacity(0.1),
                   ),
+                ),
+                child: provider.isLoadingRates
+                    ? SizedBox(
+                        width: 12,
+                        height: 12,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: theme.colorScheme.primary,
+                        ),
+                      )
+                    : Text(
+                        'USD → TRY ${provider.usdRate.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+              ),
+            ],
           ),
         ],
       ),

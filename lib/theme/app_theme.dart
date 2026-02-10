@@ -13,6 +13,14 @@ class AppTheme {
   static const Color surfaceDark = Color(0xFF18181B); // Zinc 900
   static const Color surfaceLight = Color(0xFF27272A); // Zinc 800
 
+  // Light Theme Colors
+  static const Color backgroundLight = Color(0xFFF4F4F5); // Zinc 100
+  static const Color surfaceLightMode = Color(0xFFFFFFFF); // White
+  static const Color textBlack = Color(0xFF18181B); // Zinc 900
+  static const Color textGray = Color(0xFF52525B); // Zinc 600
+  static const Color borderLight = Color(0xFFE4E4E7); // Zinc 200
+  static const Color fieldLight = Color(0xFFF4F4F5); // Zinc 100
+
   // Gradient Colors
   static const LinearGradient mainGradient = LinearGradient(
     begin: Alignment.topLeft,
@@ -67,6 +75,61 @@ class AppTheme {
         ),
         enabledBorder: OutlineInputBorder(
           borderSide: const BorderSide(color: borderDark),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderSide: const BorderSide(color: primaryColor),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 16,
+        ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: primaryColor,
+          foregroundColor: textWhite,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          padding: const EdgeInsets.symmetric(vertical: 16),
+        ),
+      ),
+    );
+  }
+
+  static ThemeData get lightTheme {
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.light,
+      scaffoldBackgroundColor: backgroundLight,
+      primaryColor: primaryColor,
+      colorScheme: const ColorScheme.light(
+        primary: primaryColor,
+        surface: surfaceLightMode,
+        onSurface: textBlack,
+        background: backgroundLight,
+        secondary: primaryColor,
+        outline: borderLight,
+        surfaceContainerHighest: fieldLight,
+        onSurfaceVariant: textGray,
+      ),
+      textTheme: GoogleFonts.interTextTheme(
+        ThemeData.light().textTheme,
+      ).apply(bodyColor: textBlack, displayColor: textBlack),
+      iconTheme: const IconThemeData(color: textBlack),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: fieldLight,
+        hintStyle: const TextStyle(color: textGray),
+        border: OutlineInputBorder(
+          borderSide: const BorderSide(color: borderLight),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderSide: const BorderSide(color: borderLight),
           borderRadius: BorderRadius.circular(16),
         ),
         focusedBorder: OutlineInputBorder(

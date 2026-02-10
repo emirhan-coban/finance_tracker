@@ -38,7 +38,13 @@ class ExpenseProvider extends ChangeNotifier {
       debugPrint('Error fetching rates: $e');
       _isLoadingRates = false;
       notifyListeners();
+      _isLoadingRates = false;
+      notifyListeners();
     }
+  }
+
+  Future<void> refreshData() async {
+    await Future.wait([_loadExpenses(), _fetchRates()]);
   }
 
   Future<void> addExpense(Expense expense) async {
