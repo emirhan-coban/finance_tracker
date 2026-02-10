@@ -3,6 +3,8 @@ import '../theme/app_theme.dart';
 import 'package:finance_tracker/providers/theme_provider.dart';
 import 'package:finance_tracker/screens/all_expenses_screen.dart';
 import 'package:finance_tracker/widgets/expense_card.dart';
+import 'package:finance_tracker/widgets/category_budget_card.dart';
+import 'package:finance_tracker/widgets/modern_refresh_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:finance_tracker/providers/expense_provider.dart';
@@ -25,12 +27,14 @@ class DashboardScreen extends StatelessWidget {
                   children: [
                     _buildHeader(context, theme, provider),
                     Expanded(
-                      child: RefreshIndicator(
+                      child: ModernRefreshIndicator(
                         onRefresh: () async {
                           await provider.refreshData();
                         },
                         child: SingleChildScrollView(
-                          physics: const AlwaysScrollableScrollPhysics(),
+                          physics: const AlwaysScrollableScrollPhysics(
+                            parent: BouncingScrollPhysics(),
+                          ),
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 16.0,
@@ -40,6 +44,12 @@ class DashboardScreen extends StatelessWidget {
                               children: [
                                 const SizedBox(height: 16),
                                 _buildSummaryCard(theme, provider),
+                                const SizedBox(height: 24),
+                                _buildCategoryBudgetSection(
+                                  context,
+                                  theme,
+                                  provider,
+                                ),
                                 const SizedBox(height: 24),
                                 _buildRecentHeader(context, theme),
                                 const SizedBox(height: 16),
@@ -158,9 +168,13 @@ class DashboardScreen extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Text(
+          Text(
             'Harcamalarım',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.onSurface,
+            ),
           ),
           Row(
             children: [
@@ -189,14 +203,10 @@ class DashboardScreen extends StatelessWidget {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: theme.brightness == Brightness.dark
-                      ? Colors.white.withOpacity(0.05)
-                      : Colors.black.withOpacity(0.05),
+                  color: theme.colorScheme.onSurface.withOpacity(0.05),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: theme.brightness == Brightness.dark
-                        ? Colors.white.withOpacity(0.1)
-                        : Colors.black.withOpacity(0.1),
+                    color: theme.colorScheme.onSurface.withOpacity(0.1),
                   ),
                 ),
                 child: provider.isLoadingRates
@@ -337,16 +347,303 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildCategoryBudgetSection(
+    BuildContext context,
+    ThemeData theme,
+    ExpenseProvider provider,
+  ) {
+    final budgets = provider.budgets;
+    if (budgets.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Kategori Bütçeleri',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
+            TextButton.icon(
+              onPressed: () => _showBudgetSettingsDialog(context, provider),
+              icon: Icon(
+                Icons.tune_rounded,
+                size: 18,
+                color: theme.colorScheme.primary,
+              ),
+              label: Text(
+                'Düzenle',
+                style: TextStyle(
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        ...budgets.map(
+          (budget) => CategoryBudgetCard(
+            category: budget.category,
+            icon: budget.icon,
+            color: Color(budget.colorValue),
+            spent: provider.getSpentByCategory(budget.category),
+            limit: budget.limit,
+            currency: 'USD',
+            onEditLimit: () => _showEditLimitDialog(
+              context,
+              provider,
+              budget.category,
+              budget.limit,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showBudgetSettingsDialog(
+    BuildContext context,
+    ExpenseProvider provider,
+  ) {
+    final theme = Theme.of(context);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.6,
+        decoration: BoxDecoration(
+          color:
+              theme.bottomSheetTheme.backgroundColor ??
+              theme.colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        ),
+        child: Column(
+          children: [
+            const SizedBox(height: 16),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.onSurface.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Bütçe Limitlerini Düzenle',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Her kategori için aylık harcama limiti belirleyin',
+              style: TextStyle(
+                fontSize: 14,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Expanded(
+              child: Consumer<ExpenseProvider>(
+                builder: (context, provider, _) {
+                  final budgets = provider.budgets;
+                  return ListView.separated(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    itemCount: budgets.length,
+                    separatorBuilder: (_, __) => Divider(
+                      color: theme.colorScheme.outline.withOpacity(0.2),
+                      height: 1,
+                    ),
+                    itemBuilder: (context, index) {
+                      final budget = budgets[index];
+                      final spent = provider.getSpentByCategory(
+                        budget.category,
+                      );
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: Color(budget.colorValue).withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Center(
+                            child: Text(
+                              budget.icon,
+                              style: const TextStyle(fontSize: 22),
+                            ),
+                          ),
+                        ),
+                        title: Text(
+                          budget.categoryDisplayName,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: theme.colorScheme.onSurface,
+                          ),
+                        ),
+                        subtitle: Text(
+                          'Harcanan: \$${spent.toStringAsFixed(2)}',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        trailing: TextButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            _showEditLimitDialog(
+                              context,
+                              provider,
+                              budget.category,
+                              budget.limit,
+                            );
+                          },
+                          child: Text(
+                            budget.limit > 0
+                                ? '\$${budget.limit.toStringAsFixed(0)}'
+                                : 'Limit Koy',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showEditLimitDialog(
+    BuildContext context,
+    ExpenseProvider provider,
+    String category,
+    double currentLimit,
+  ) {
+    final theme = Theme.of(context);
+    final controller = TextEditingController(
+      text: currentLimit > 0 ? currentLimit.toStringAsFixed(0) : '',
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: theme.colorScheme.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text(
+          'Bütçe Limiti',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: theme.colorScheme.onSurface,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Bu kategori için aylık harcama limiti belirleyin (USD)',
+              style: TextStyle(
+                fontSize: 14,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 20),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onSurface,
+              ),
+              textAlign: TextAlign.center,
+              decoration: InputDecoration(
+                prefixText: '\$ ',
+                prefixStyle: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.onSurface.withOpacity(0.4),
+                ),
+                hintText: '0',
+                hintStyle: TextStyle(
+                  color: theme.colorScheme.onSurface.withOpacity(0.2),
+                ),
+                filled: true,
+                fillColor: theme.colorScheme.surfaceContainerHighest,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              provider.setBudgetLimit(category, 0);
+              Navigator.pop(context);
+            },
+            child: Text(
+              'Kaldır',
+              style: TextStyle(
+                color: Colors.red.shade400,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          FilledButton(
+            onPressed: () {
+              final value = double.tryParse(controller.text) ?? 0;
+              provider.setBudgetLimit(category, value);
+              Navigator.pop(context);
+            },
+            style: FilledButton.styleFrom(
+              backgroundColor: theme.colorScheme.primary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text(
+              'Kaydet',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildRecentHeader(BuildContext context, ThemeData theme) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        const Text(
+        Text(
           'Son Harcamalar',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: theme.colorScheme.onSurface,
           ),
         ),
         TextButton(
@@ -379,14 +676,14 @@ class DashboardScreen extends StatelessWidget {
             Icon(
               Icons.receipt_long_outlined,
               size: 64,
-              color: Colors.white.withOpacity(0.3),
+              color: theme.colorScheme.onSurface.withOpacity(0.2),
             ),
             const SizedBox(height: 16),
             Text(
               'Henüz harcama eklemediniz',
               style: TextStyle(
                 fontSize: 16,
-                color: Colors.white.withOpacity(0.5),
+                color: theme.colorScheme.onSurface.withOpacity(0.5),
               ),
             ),
             const SizedBox(height: 8),
@@ -395,7 +692,7 @@ class DashboardScreen extends StatelessWidget {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.white.withOpacity(0.3),
+                color: theme.colorScheme.onSurface.withOpacity(0.3),
               ),
             ),
           ],

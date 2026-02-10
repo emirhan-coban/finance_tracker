@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:finance_tracker/providers/expense_provider.dart';
-import '../theme/app_theme.dart';
 import 'package:finance_tracker/models/expense.dart';
 import 'package:finance_tracker/services/receipt_scanning_service.dart';
 import 'package:image_picker/image_picker.dart';
@@ -64,8 +63,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             ).format(_selectedDate);
           }
           if (result['merchant'] != null) {
-            // Only set if name is empty to avoid overwriting user input?
-            // Or overwrite if it looks like a default name?
             _nameController.text = result['merchant'];
           }
           _isScanning = false;
@@ -145,7 +142,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               key: _formKey,
               child: Column(
                 children: [
-                  _buildHeader(context),
+                  _buildHeader(context, theme),
                   Expanded(
                     child: SingleChildScrollView(
                       child: Column(
@@ -173,7 +170,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, ThemeData theme) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       child: Row(
@@ -190,22 +187,22 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               onPressed: () => Navigator.pop(context),
               icon: const Icon(Icons.arrow_back_ios_new, size: 20),
               padding: EdgeInsets.zero,
-              color: Colors.white,
+              color: theme.colorScheme.onSurface,
             ),
           ),
-          const Text(
+          Text(
             'Yeni Harcama Ekle',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.w600,
-              color: Colors.white,
+              color: theme.colorScheme.onSurface,
             ),
           ),
           IconButton(
             onPressed: _scanReceipt,
             icon: const Icon(Icons.document_scanner_outlined, size: 24),
-            color: Colors.white,
+            color: theme.colorScheme.onSurface,
             tooltip: 'Fiş Tara',
           ),
         ],
@@ -232,7 +229,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                     style: TextStyle(
                       fontSize: 36,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white.withOpacity(0.4),
+                      color: theme.colorScheme.onSurface.withOpacity(0.4),
                     ),
                   ),
                   const SizedBox(width: 6),
@@ -250,10 +247,10 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                           ),
                         ],
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 56,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: theme.colorScheme.onSurface,
                           height: 1.0,
                         ),
                         decoration: InputDecoration(
@@ -266,7 +263,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                           focusedErrorBorder: InputBorder.none,
                           hintText: '0.00',
                           hintStyle: TextStyle(
-                            color: Colors.white.withOpacity(0.1),
+                            color: theme.colorScheme.onSurface.withOpacity(0.1),
                             fontSize: 56,
                           ),
                           errorStyle: const TextStyle(fontSize: 0, height: 0),
@@ -298,33 +295,39 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1C1C1E).withOpacity(0.5),
+                  color: theme.colorScheme.surfaceContainerHighest.withOpacity(
+                    0.5,
+                  ),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white.withOpacity(0.05)),
+                  border: Border.all(
+                    color: theme.colorScheme.outline.withOpacity(0.1),
+                  ),
                 ),
                 child: Text.rich(
                   TextSpan(
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFFA1A1AA),
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                     children: [
                       TextSpan(
                         text: '≈ ',
-                        style: TextStyle(color: Colors.white.withOpacity(0.4)),
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurface.withOpacity(0.4),
+                        ),
                       ),
                       TextSpan(
                         text: tryAmount.toStringAsFixed(2),
                         style: const TextStyle(fontWeight: FontWeight.w500),
                       ),
                       const TextSpan(text: ' '),
-                      const TextSpan(
+                      TextSpan(
                         text: 'TRY',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF2D6AEE),
+                          color: theme.colorScheme.primary,
                         ),
                       ),
                     ],
@@ -344,15 +347,21 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       child: Column(
         children: [
           _buildInputField(
+            theme: theme,
             label: 'HARCAMA ADI',
             icon: Icons.shopping_bag_outlined,
             hint: 'Örn: Akşam Yemeği',
             controller: _nameController,
           ),
           const SizedBox(height: 24),
-          _buildDropdownField(label: 'KATEGORİ', icon: Icons.category_outlined),
+          _buildDropdownField(
+            theme: theme,
+            label: 'KATEGORİ',
+            icon: Icons.category_outlined,
+          ),
           const SizedBox(height: 24),
           _buildInputField(
+            theme: theme,
             label: 'TARİH',
             icon: Icons.calendar_today_outlined,
             hint: '2024-05-20',
@@ -361,6 +370,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           ),
           const SizedBox(height: 24),
           _buildInputField(
+            theme: theme,
             label: 'NOT (OPSİYONEL)',
             icon: Icons.description_outlined,
             hint: 'Detay ekleyin...',
@@ -374,6 +384,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   }
 
   Widget _buildInputField({
+    required ThemeData theme,
     required String label,
     required IconData icon,
     required String hint,
@@ -389,10 +400,10 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           padding: const EdgeInsets.only(left: 4, bottom: 8),
           child: Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF71717A),
+              color: theme.colorScheme.onSurfaceVariant,
               letterSpacing: 0.8,
             ),
           ),
@@ -401,10 +412,10 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           controller: controller,
           readOnly: isDate,
           maxLines: maxLines,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 15,
             fontWeight: FontWeight.w500,
-            color: Colors.white,
+            color: theme.colorScheme.onSurface,
           ),
           validator: isOptional
               ? null
@@ -431,24 +442,35 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 }
               : null,
           decoration: InputDecoration(
-            prefixIcon: Icon(icon, color: const Color(0xFF71717A), size: 20),
+            prefixIcon: Icon(
+              icon,
+              color: theme.colorScheme.onSurfaceVariant,
+              size: 20,
+            ),
             hintText: hint,
             hintStyle: TextStyle(
-              color: const Color(0xFF71717A).withOpacity(0.4),
+              color: theme.colorScheme.onSurfaceVariant.withOpacity(0.4),
             ),
             filled: true,
-            fillColor: const Color(0xFF1C1C1E),
+            fillColor: theme.colorScheme.surfaceContainerHighest,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(color: Colors.white.withOpacity(0.05)),
+              borderSide: BorderSide(
+                color: theme.colorScheme.outline.withOpacity(0.15),
+              ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(color: Colors.white.withOpacity(0.05)),
+              borderSide: BorderSide(
+                color: theme.colorScheme.outline.withOpacity(0.15),
+              ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: Color(0xFF2D6AEE), width: 2),
+              borderSide: BorderSide(
+                color: theme.colorScheme.primary,
+                width: 2,
+              ),
             ),
             contentPadding: EdgeInsets.symmetric(
               horizontal: 48,
@@ -460,7 +482,11 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     );
   }
 
-  Widget _buildDropdownField({required String label, required IconData icon}) {
+  Widget _buildDropdownField({
+    required ThemeData theme,
+    required String label,
+    required IconData icon,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -468,10 +494,10 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           padding: const EdgeInsets.only(left: 4, bottom: 8),
           child: Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF71717A),
+              color: theme.colorScheme.onSurfaceVariant,
               letterSpacing: 0.8,
             ),
           ),
@@ -484,13 +510,15 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
             decoration: BoxDecoration(
-              color: const Color(0xFF1C1C1E),
+              color: theme.colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withOpacity(0.05)),
+              border: Border.all(
+                color: theme.colorScheme.outline.withOpacity(0.15),
+              ),
             ),
             child: Row(
               children: [
-                Icon(icon, color: const Color(0xFF71717A), size: 20),
+                Icon(icon, color: theme.colorScheme.onSurfaceVariant, size: 20),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -505,10 +533,10 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                         : _selectedCategory == 'Accommodation'
                         ? 'Konaklama'
                         : _selectedCategory,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w500,
-                      color: Colors.white,
+                      color: theme.colorScheme.onSurface,
                     ),
                   ),
                 ),
@@ -517,9 +545,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   style: const TextStyle(fontSize: 20),
                 ),
                 const SizedBox(width: 8),
-                const Icon(
+                Icon(
                   Icons.keyboard_arrow_down_rounded,
-                  color: Color(0xFF71717A),
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
               ],
             ),
@@ -530,15 +558,18 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   }
 
   void _showCategoryModal(BuildContext context) {
+    final theme = Theme.of(context);
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (context) => Container(
         height: MediaQuery.of(context).size.height * 0.7,
-        decoration: const BoxDecoration(
-          color: Color(0xFF18181B),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        decoration: BoxDecoration(
+          color:
+              theme.bottomSheetTheme.backgroundColor ??
+              theme.colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
         ),
         child: Column(
           children: [
@@ -547,17 +578,17 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
+                color: theme.colorScheme.onSurface.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
             const SizedBox(height: 32),
-            const Text(
+            Text(
               'Kategori Seçin',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: theme.colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 32),
@@ -569,30 +600,35 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 padding: const EdgeInsets.all(24),
                 children: [
                   _buildCategoryItem(
+                    theme,
                     'Food & Drinks',
                     'Yiyecek & İçecek',
                     '🍕',
                     Colors.orange,
                   ),
                   _buildCategoryItem(
+                    theme,
                     'Transportation',
                     'Ulaşım',
                     '🚕',
                     Colors.blue,
                   ),
                   _buildCategoryItem(
+                    theme,
                     'Sightseeing',
                     'Gezi',
                     '🎭',
                     Colors.deepPurple,
                   ),
                   _buildCategoryItem(
+                    theme,
                     'Shopping',
                     'Alışveriş',
                     '🛍️',
                     Colors.pink,
                   ),
                   _buildCategoryItem(
+                    theme,
                     'Accommodation',
                     'Konaklama',
                     '🏨',
@@ -607,7 +643,13 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     );
   }
 
-  Widget _buildCategoryItem(String id, String label, String icon, Color color) {
+  Widget _buildCategoryItem(
+    ThemeData theme,
+    String id,
+    String label,
+    String icon,
+    Color color,
+  ) {
     final isSelected = _selectedCategory == id;
     return InkWell(
       onTap: () {
@@ -617,7 +659,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       borderRadius: BorderRadius.circular(24),
       child: Container(
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.2) : const Color(0xFF27272A),
+          color: isSelected
+              ? color.withOpacity(0.2)
+              : theme.colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
             color: isSelected ? color : Colors.transparent,
@@ -645,7 +689,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                color: isSelected ? Colors.white : Colors.white70,
+                color: isSelected
+                    ? theme.colorScheme.onSurface
+                    : theme.colorScheme.onSurfaceVariant,
               ),
             ),
           ],
@@ -658,8 +704,10 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.9),
-        border: Border(top: BorderSide(color: Colors.white.withOpacity(0.05))),
+        color: theme.scaffoldBackgroundColor,
+        border: Border(
+          top: BorderSide(color: theme.colorScheme.outline.withOpacity(0.1)),
+        ),
       ),
       child: SizedBox(
         width: double.infinity,
@@ -667,10 +715,10 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         child: ElevatedButton(
           onPressed: _saveExpense,
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.primaryColor,
+            backgroundColor: theme.colorScheme.primary,
             foregroundColor: Colors.white,
             elevation: 0,
-            shadowColor: AppTheme.primaryColor.withOpacity(0.2),
+            shadowColor: theme.colorScheme.primary.withOpacity(0.2),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),

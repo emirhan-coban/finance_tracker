@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:finance_tracker/models/expense.dart';
+import 'package:finance_tracker/models/category_budget.dart';
 import 'package:finance_tracker/services/storage_service.dart';
 import 'package:finance_tracker/services/currency_service.dart';
 
@@ -8,22 +9,30 @@ class ExpenseProvider extends ChangeNotifier {
   final CurrencyService _currencyService = CurrencyService();
 
   List<Expense> _expenses = [];
+  List<CategoryBudget> _budgets = [];
   double _usdRate = 43.60;
   double _eurRate = 46.50;
   bool _isLoadingRates = true;
 
   List<Expense> get expenses => _expenses;
+  List<CategoryBudget> get budgets => _budgets;
   double get usdRate => _usdRate;
   double get eurRate => _eurRate;
   bool get isLoadingRates => _isLoadingRates;
 
   ExpenseProvider() {
     _loadExpenses();
+    _loadBudgets();
     _fetchRates();
   }
 
   Future<void> _loadExpenses() async {
     _expenses = await _storageService.loadExpenses();
+    notifyListeners();
+  }
+
+  Future<void> _loadBudgets() async {
+    _budgets = await _storageService.loadBudgets();
     notifyListeners();
   }
 
@@ -38,18 +47,16 @@ class ExpenseProvider extends ChangeNotifier {
       debugPrint('Error fetching rates: $e');
       _isLoadingRates = false;
       notifyListeners();
-      _isLoadingRates = false;
-      notifyListeners();
     }
   }
 
   Future<void> refreshData() async {
-    await Future.wait([_loadExpenses(), _fetchRates()]);
+    await Future.wait([_loadExpenses(), _loadBudgets(), _fetchRates()]);
   }
 
   Future<void> addExpense(Expense expense) async {
     debugPrint('ExpenseProvider: Adding expense ${expense.name}');
-    _expenses.insert(0, expense); // Add to beginning for recent-first order
+    _expenses.insert(0, expense);
     debugPrint(
       'ExpenseProvider: Expense list now has ${_expenses.length} items',
     );
@@ -84,6 +91,29 @@ class ExpenseProvider extends ChangeNotifier {
   double getTotalInTRY() {
     final totalUSD = getTotalAmount();
     return totalUSD * _usdRate;
+  }
+
+  /// Get the total spent for a given category in USD
+  double getSpentByCategory(String category) {
+    return _expenses.where((e) => e.category == category).fold(0.0, (
+      sum,
+      expense,
+    ) {
+      if (expense.currency == 'EUR') {
+        return sum + (expense.amount * (_eurRate / _usdRate));
+      }
+      return sum + expense.amount;
+    });
+  }
+
+  /// Set the budget limit for a given category
+  Future<void> setBudgetLimit(String category, double limit) async {
+    final index = _budgets.indexWhere((b) => b.category == category);
+    if (index != -1) {
+      _budgets[index].limit = limit;
+    }
+    await _storageService.saveBudgets(_budgets);
+    notifyListeners();
   }
 
   List<Expense> getExpensesByDate(DateTime date) {

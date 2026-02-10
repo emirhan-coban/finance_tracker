@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:finance_tracker/models/expense.dart';
+import 'package:finance_tracker/models/category_budget.dart';
 
 class StorageService {
   static const String _expensesKey = 'expenses';
+  static const String _budgetsKey = 'category_budgets';
 
   Future<void> saveExpenses(List<Expense> expenses) async {
     final prefs = await SharedPreferences.getInstance();
@@ -26,5 +28,23 @@ class StorageService {
   Future<void> clearExpenses() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_expensesKey);
+  }
+
+  Future<void> saveBudgets(List<CategoryBudget> budgets) async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonList = budgets.map((b) => b.toJson()).toList();
+    await prefs.setString(_budgetsKey, json.encode(jsonList));
+  }
+
+  Future<List<CategoryBudget>> loadBudgets() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonString = prefs.getString(_budgetsKey);
+
+    if (jsonString == null) {
+      return CategoryBudget.defaults();
+    }
+
+    final List<dynamic> jsonList = json.decode(jsonString);
+    return jsonList.map((json) => CategoryBudget.fromJson(json)).toList();
   }
 }

@@ -86,6 +86,23 @@ class AppTheme {
           vertical: 16,
         ),
       ),
+      cardTheme: CardThemeData(
+        color: surfaceDark,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        foregroundColor: textWhite,
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: surfaceDark,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        ),
+      ),
+      dividerTheme: DividerThemeData(color: borderDark),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryColor,
@@ -141,6 +158,23 @@ class AppTheme {
           vertical: 16,
         ),
       ),
+      cardTheme: CardThemeData(
+        color: surfaceLightMode,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        foregroundColor: textBlack,
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: surfaceLightMode,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        ),
+      ),
+      dividerTheme: DividerThemeData(color: borderLight),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryColor,

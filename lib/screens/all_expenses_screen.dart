@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/expense_provider.dart';
-import '../theme/app_theme.dart';
 import '../widgets/expense_card.dart';
 
 class AllExpensesScreen extends StatelessWidget {
@@ -9,8 +8,9 @@ class AllExpensesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: AppTheme.backgroundDark,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text(
           'Tüm Harcamalar',
@@ -30,13 +30,13 @@ class AllExpensesScreen extends StatelessWidget {
                   Icon(
                     Icons.history,
                     size: 64,
-                    color: Colors.white.withOpacity(0.3),
+                    color: theme.colorScheme.onSurface.withOpacity(0.2),
                   ),
                   const SizedBox(height: 16),
                   Text(
                     'Henüz harcama yok',
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.5),
+                      color: theme.colorScheme.onSurface.withOpacity(0.5),
                       fontSize: 16,
                     ),
                   ),

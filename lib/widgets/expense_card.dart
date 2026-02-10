@@ -1,7 +1,6 @@
 import 'package:finance_tracker/models/expense.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../theme/app_theme.dart';
 
 class ExpenseCard extends StatelessWidget {
   final Expense expense;
@@ -17,6 +16,7 @@ class ExpenseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final tryAmount = expense.currency == 'USD'
         ? expense.amount * usdRate
         : expense.amount * eurRate;
@@ -25,9 +25,9 @@ class ExpenseCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceLight, // Zinc 800
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: theme.colorScheme.outline.withOpacity(0.15)),
       ),
       child: Row(
         children: [
@@ -52,10 +52,10 @@ class ExpenseCard extends StatelessWidget {
               children: [
                 Text(
                   expense.name,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Colors.white,
+                    color: theme.colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -64,7 +64,7 @@ class ExpenseCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
-                    color: Colors.white.withOpacity(0.5),
+                    color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -75,10 +75,10 @@ class ExpenseCard extends StatelessWidget {
             children: [
               Text(
                 '${expense.currency == 'USD' ? '\$' : '€'}${expense.amount.toStringAsFixed(2)}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  color: Colors.white,
+                  color: theme.colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 4),
@@ -87,7 +87,7 @@ class ExpenseCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: Colors.white.withOpacity(0.3),
+                  color: theme.colorScheme.onSurface.withOpacity(0.3),
                 ),
               ),
             ],
