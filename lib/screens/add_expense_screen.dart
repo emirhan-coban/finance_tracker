@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import 'package:finance_tracker/providers/expense_provider.dart';
 import '../theme/app_theme.dart';
 import 'package:finance_tracker/models/expense.dart';
+import 'package:finance_tracker/services/receipt_scanning_service.dart';
+import 'package:image_picker/image_picker.dart';
 
 class AddExpenseScreen extends StatefulWidget {
   const AddExpenseScreen({super.key});
@@ -25,6 +27,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   );
 
   DateTime _selectedDate = DateTime.now();
+  bool _isScanning = false;
+  final _receiptService = ReceiptScanningService();
 
   @override
   void dispose() {
@@ -32,7 +36,53 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     _nameController.dispose();
     _noteController.dispose();
     _dateController.dispose();
+    _receiptService.dispose();
     super.dispose();
+  }
+
+  Future<void> _scanReceipt() async {
+    try {
+      setState(() => _isScanning = true);
+
+      final XFile? image = await _receiptService.pickImage(ImageSource.gallery);
+      if (image == null) {
+        setState(() => _isScanning = false);
+        return;
+      }
+
+      final result = await _receiptService.scanReceipt(image);
+
+      if (mounted) {
+        setState(() {
+          if (result['amount'] != null) {
+            _amountController.text = result['amount'].toString();
+          }
+          if (result['date'] != null) {
+            _selectedDate = result['date'];
+            _dateController.text = DateFormat(
+              'yyyy-MM-dd',
+            ).format(_selectedDate);
+          }
+          if (result['merchant'] != null) {
+            // Only set if name is empty to avoid overwriting user input?
+            // Or overwrite if it looks like a default name?
+            _nameController.text = result['merchant'];
+          }
+          _isScanning = false;
+        });
+
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Fiş başarıyla tarandı!')));
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isScanning = false);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Hata oluştu: $e')));
+      }
+    }
   }
 
   void _saveExpense() {
@@ -89,26 +139,35 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              _buildHeader(context),
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      _buildAmountInput(theme),
-                      const SizedBox(height: 24),
-                      _buildForm(theme),
-                      const SizedBox(height: 100),
-                    ],
+        child: Stack(
+          children: [
+            Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  _buildHeader(context),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          _buildAmountInput(theme),
+                          const SizedBox(height: 24),
+                          _buildForm(theme),
+                          const SizedBox(height: 100),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
+                  _buildSaveButton(theme),
+                ],
               ),
-              _buildSaveButton(theme),
-            ],
-          ),
+            ),
+            if (_isScanning)
+              Container(
+                color: Colors.black54,
+                child: const Center(child: CircularProgressIndicator()),
+              ),
+          ],
         ),
       ),
     );
@@ -118,6 +177,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Container(
             width: 40,
@@ -133,18 +193,21 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               color: Colors.white,
             ),
           ),
-          const Expanded(
-            child: Text(
-              'Yeni Harcama Ekle',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
+          const Text(
+            'Yeni Harcama Ekle',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
             ),
           ),
-          const SizedBox(width: 40),
+          IconButton(
+            onPressed: _scanReceipt,
+            icon: const Icon(Icons.document_scanner_outlined, size: 24),
+            color: Colors.white,
+            tooltip: 'Fiş Tara',
+          ),
         ],
       ),
     );
