@@ -1,4 +1,4 @@
-import 'package:finance_tracker/screens/splash_screen.dart';
+import 'package:finance_tracker/screens/dashboard_screen.dart';
 import 'package:finance_tracker/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -30,7 +30,7 @@ class FinanceTrackerApp extends StatelessWidget {
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
           themeMode: themeProvider.themeMode,
-          home: const SplashScreen(),
+          home: const DashboardScreen(),
         );
       },
     );
