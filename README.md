@@ -1,78 +1,78 @@
 # Finance Tracker 💰
 
-A modern, efficient personal finance tracking application built with Flutter. This app helps you manage your expenses, track your spending habits, and scan receipts using OCR technology.
+Flutter ile geliştirilmiş modern ve verimli bir kişisel finans takip uygulaması. Bu uygulama, günlük harcamalarınızı yönetmenize, harcama alışkanlıklarınızı takip etmenize ve OCR teknolojisini kullanarak fişlerinizi taramanıza yardımcı olur.
 
-## ✨ Features
+## ✨ Özellikler
 
-*   **Expense Tracking**: Easily add and categorize your daily expenses.
-*   **OCR Receipt Scanning**: Use your camera to scan receipts and automatically extract text using Google ML Kit.
-*   **Local Data Persistence**: Your data is saved locally on your device using Shared Preferences, ensuring privacy and offline access.
-*   **Smart State Management**: Efficient app state handling with Provider.
-*   **Custom Theming**: Beautiful UI with custom fonts (Google Fonts) and dark/light mode support.
-*   **Native Splash Screen**: Seamless launch experience.
+*   **Gider Takibi**: Günlük harcamalarınızı kolayca ekleyin ve kategorize edin.
+*   **OCR Fiş Tarama**: Kameranızı kullanarak fişleri tarayın ve Google ML Kit ile metinleri otomatik olarak ayıklayın.
+*   **Yerel Veri Saklama**: Verileriniz Shared Preferences kullanılarak cihazınızda yerel olarak saklanır, böylece gizlilik ve çevrimdışı erişim sağlanır.
+*   **Akıllı Durum Yönetimi**: Provider ile verimli uygulama durumu (state) yönetimi.
+*   **Özel Temalar**: Özel yazı tipleri (Google Fonts) ve karanlık/aydınlık mod desteği ile şık arayüz.
+*   **Doğal Açılış Ekranı**: Sorunsuz ve hızlı bir açılış deneyimi.
 
-## 🛠️ Tech Stack
+## 🛠️ Kullanılan Teknolojiler
 
 *   **Framework**: [Flutter](https://flutter.dev/)
-*   **Language**: [Dart](https://dart.dev/)
-*   **State Management**: [Provider](https://pub.dev/packages/provider)
-*   **Local Storage**: [Shared Preferences](https://pub.dev/packages/shared_preferences)
-*   **OCR/ML**: [Google ML Kit Text Recognition](https://pub.dev/packages/google_mlkit_text_recognition)
-*   **Media**: [Image Picker](https://pub.dev/packages/image_picker)
-*   **Networking**: [HTTP](https://pub.dev/packages/http)
-*   **Utilities**: [Intl](https://pub.dev/packages/intl)
-*   **Fonts**: [Google Fonts](https://pub.dev/packages/google_fonts)
+*   **Dil**: [Dart](https://dart.dev/)
+*   **Durum Yönetimi (State Management)**: [Provider](https://pub.dev/packages/provider)
+*   **Yerel Depolama**: [Shared Preferences](https://pub.dev/packages/shared_preferences)
+*   **OCR/Yapay Zeka**: [Google ML Kit Text Recognition](https://pub.dev/packages/google_mlkit_text_recognition)
+*   **Medya**: [Image Picker](https://pub.dev/packages/image_picker)
+*   **Ağ İstekleri**: [HTTP](https://pub.dev/packages/http)
+*   **Araçlar**: [Intl](https://pub.dev/packages/intl)
+*   **Yazı Tipleri**: [Google Fonts](https://pub.dev/packages/google_fonts)
 
-## 🚀 Getting Started
+## 🚀 Başlarken
 
-### Prerequisites
+### Ön Koşullar
 
-*   Flutter SDK (3.10.4 or higher)
+*   Flutter SDK (3.10.4 veya üzeri)
 *   Dart SDK
-*   Android Studio / VS Code with Flutter extensions
+*   Android Studio / VS Code (Flutter eklentileri ile birlikte)
 
-### Installation
+### Kurulum
 
-1.  **Clone the repository**
+1.  **Depoyu (Repository) Klonlayın**
     ```bash
-    git clone https://github.com/YOUR_USERNAME/finance_tracker.git
+    git clone https://github.com/KULLANICI_ADINIZ/finance_tracker.git
     cd finance_tracker
     ```
 
-2.  **Install dependencies**
+2.  **Bağımlılıkları Yükleyin**
     ```bash
     flutter pub get
     ```
 
-3.  **Run the app**
+3.  **Uygulamayı Çalıştırın**
     ```bash
     flutter run
     ```
 
-## 📸 Screenshots
+## 📸 Ekran Görüntüleri
 
-*(Add your screenshots here)*
+*(Ekran görüntülerinizi buraya ekleyin)*
 
-| Dashboard | Add Expense | OCR Scanner |
+| Kontrol Paneli (Dashboard) | Harcama Ekle | OCR Tarayıcı |
 |:---:|:---:|:---:|
-| ![Dashboard](assets/screenshots/dashboard.png) | ![Add Expense](assets/screenshots/add_expense.png) | ![Scanner](assets/screenshots/scanner.png) |
+| ![Dashboard](assets/screenshots/dashboard.png) | ![Harcama Ekle](assets/screenshots/add_expense.png) | ![Tarayıcı](assets/screenshots/scanner.png) |
 
-> Note: Create an `assets/screenshots` folder and add images to display them here.
+> Not: Proje dizininde `assets/screenshots` klasörü oluşturup görselleri buraya ekleyerek yukarıdaki alanda görünmelerini sağlayabilirsiniz.
 
-## 🤝 Contributing
+## 🤝 Katkıda Bulunma
 
-Contributions, issues, and feature requests are welcome!
+Katkılar, sorun bildirimleri ve özellik istekleri memnuniyetle karşılanır!
 
-1.  Fork the Project
-2.  Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3.  Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4.  Push to the Branch (`git push origin feature/AmazingFeature`)
-5.  Open a Pull Request
+1.  Projeyi Fork'layın
+2.  Yeni Bir Özellik Dalı (Branch) Oluşturun (`git checkout -b feature/MuhtesemOzellik`)
+3.  Değişikliklerinizi Commit Edin (`git commit -m 'Yeni bir özellik eklendi'`)
+4.  Dalı (Branch) Push Edin (`git push origin feature/MuhtesemOzellik`)
+5.  Bir Pull Request Oluşturun
 
-## 📄 License
+## 📄 Lisans
 
-Distributed under the MIT License. See `LICENSE` for more information.
+MIT Lisansı altında dağıtılmaktadır. Daha fazla bilgi için `LICENSE` dosyasına bakın.
 
 ---
 
-Made with ❤️ using Flutter
+Flutter ile ❤️ kullanılarak yapıldı
