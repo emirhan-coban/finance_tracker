@@ -49,16 +49,6 @@ Flutter ile geliştirilmiş modern ve verimli bir kişisel finans takip uygulama
     flutter run
     ```
 
-## 📸 Ekran Görüntüleri
-
-*(Ekran görüntülerinizi buraya ekleyin)*
-
-| Kontrol Paneli (Dashboard) | Harcama Ekle | OCR Tarayıcı |
-|:---:|:---:|:---:|
-| ![Dashboard](assets/screenshots/dashboard.png) | ![Harcama Ekle](assets/screenshots/add_expense.png) | ![Tarayıcı](assets/screenshots/scanner.png) |
-
-> Not: Proje dizininde `assets/screenshots` klasörü oluşturup görselleri buraya ekleyerek yukarıdaki alanda görünmelerini sağlayabilirsiniz.
-
 ## 🤝 Katkıda Bulunma
 
 Katkılar, sorun bildirimleri ve özellik istekleri memnuniyetle karşılanır!
