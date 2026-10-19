@@ -1,20 +1,22 @@
-import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter/services.dart';
 
 class ReceiptScanningService {
-  final _textRecognizer = TextRecognizer();
   final _picker = ImagePicker();
+  static const _ocrChannel = MethodChannel('finance_tracker/ocr');
 
   Future<XFile?> pickImage(ImageSource source) async {
     return await _picker.pickImage(source: source);
   }
 
   Future<Map<String, dynamic>> scanReceipt(XFile imageFile) async {
-    final inputImage = InputImage.fromFilePath(imageFile.path);
-    final recognizedText = await _textRecognizer.processImage(inputImage);
-
-    String text = recognizedText.text;
+    final text =
+        await _ocrChannel.invokeMethod<String>(
+          'recognizeText',
+          imageFile.path,
+        ) ??
+        '';
 
     // Parsing Logic
     double? amount = _extractAmount(text);
@@ -110,7 +112,5 @@ class ReceiptScanningService {
     return null;
   }
 
-  void dispose() {
-    _textRecognizer.close();
-  }
+  void dispose() {}
 }

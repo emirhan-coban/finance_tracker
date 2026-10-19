@@ -5,6 +5,10 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+dependencies {
+    implementation("com.google.mlkit:text-recognition:16.0.1")
+}
+
 android {
     namespace = "com.example.finance_tracker"
     compileSdk = flutter.compileSdkVersion

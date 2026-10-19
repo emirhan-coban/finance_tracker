@@ -5,7 +5,7 @@ Flutter ile geliştirilmiş modern ve verimli bir kişisel finans takip uygulama
 ## ✨ Özellikler
 
 *   **Gider Takibi**: Günlük harcamalarınızı kolayca ekleyin ve kategorize edin.
-*   **OCR Fiş Tarama**: Kameranızı kullanarak fişleri tarayın ve Google ML Kit ile metinleri otomatik olarak ayıklayın.
+*   **OCR Fiş Tarama**: Kameranızı kullanarak fişleri tarayın ve platforma uygun OCR ile metinleri otomatik olarak ayıklayın.
 *   **Yerel Veri Saklama**: Verileriniz Shared Preferences kullanılarak cihazınızda yerel olarak saklanır, böylece gizlilik ve çevrimdışı erişim sağlanır.
 *   **Akıllı Durum Yönetimi**: Provider ile verimli uygulama durumu (state) yönetimi.
 *   **Özel Temalar**: Özel yazı tipleri (Google Fonts) ve karanlık/aydınlık mod desteği ile şık arayüz.
@@ -17,7 +17,7 @@ Flutter ile geliştirilmiş modern ve verimli bir kişisel finans takip uygulama
 *   **Dil**: [Dart](https://dart.dev/)
 *   **Durum Yönetimi (State Management)**: [Provider](https://pub.dev/packages/provider)
 *   **Yerel Depolama**: [Shared Preferences](https://pub.dev/packages/shared_preferences)
-*   **OCR/Yapay Zeka**: [Google ML Kit Text Recognition](https://pub.dev/packages/google_mlkit_text_recognition)
+*   **OCR/Yapay Zeka**: iOS'ta Apple Vision, Android'de Google ML Kit Text Recognition
 *   **Medya**: [Image Picker](https://pub.dev/packages/image_picker)
 *   **Ağ İstekleri**: [HTTP](https://pub.dev/packages/http)
 *   **Araçlar**: [Intl](https://pub.dev/packages/intl)

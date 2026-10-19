@@ -1,3 +1,4 @@
+import 'package:finance_tracker/utils/category_utils.dart';
 import 'package:flutter/material.dart';
 
 class CategoryBudget {
@@ -13,22 +14,7 @@ class CategoryBudget {
     this.limit = 0,
   });
 
-  String get categoryDisplayName {
-    switch (category) {
-      case 'Food & Drinks':
-        return 'Yiyecek & İçecek';
-      case 'Transportation':
-        return 'Ulaşım';
-      case 'Sightseeing':
-        return 'Gezi';
-      case 'Shopping':
-        return 'Alışveriş';
-      case 'Accommodation':
-        return 'Konaklama';
-      default:
-        return category;
-    }
-  }
+  Color get color => Color(colorValue);
 
   Map<String, dynamic> toJson() {
     return {
@@ -42,39 +28,22 @@ class CategoryBudget {
   factory CategoryBudget.fromJson(Map<String, dynamic> json) {
     return CategoryBudget(
       category: json['category'] as String,
-      icon: json['icon'] as String,
-      colorValue: json['colorValue'] as int,
-      limit: (json['limit'] as num).toDouble(),
+      icon: json['icon'] as String? ?? '',
+      colorValue:
+          json['colorValue'] as int? ??
+          CategoryUtils.getColor(json['category'] as String?).toARGB32(),
+      limit: (json['limit'] as num?)?.toDouble() ?? 0,
     );
   }
 
   static List<CategoryBudget> defaults() {
-    return [
-      CategoryBudget(
-        category: 'Food & Drinks',
-        icon: '🍕',
-        colorValue: Colors.orange.value,
-      ),
-      CategoryBudget(
-        category: 'Transportation',
-        icon: '🚕',
-        colorValue: Colors.blue.value,
-      ),
-      CategoryBudget(
-        category: 'Sightseeing',
-        icon: '🎭',
-        colorValue: Colors.deepPurple.value,
-      ),
-      CategoryBudget(
-        category: 'Shopping',
-        icon: '🛍️',
-        colorValue: Colors.pink.value,
-      ),
-      CategoryBudget(
-        category: 'Accommodation',
-        icon: '🏨',
-        colorValue: Colors.teal.value,
-      ),
-    ];
+    return CategoryUtils.categories.map((c) {
+      return CategoryBudget(
+        category: c.id,
+        icon: c.id,
+        colorValue: c.color.toARGB32(),
+        limit: 0,
+      );
+    }).toList();
   }
 }

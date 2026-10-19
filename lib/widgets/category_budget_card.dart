@@ -1,209 +1,127 @@
+import 'package:finance_tracker/utils/category_utils.dart';
+import 'package:finance_tracker/widgets/bouncing_button.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
-class CategoryBudgetCard extends StatelessWidget {
+/// Compact Category Budget Card used in the horizontal carousel.
+class CategoryBudgetCompactCard extends StatelessWidget {
   final String category;
-  final String icon;
-  final Color color;
   final double spent;
   final double limit;
-  final String currency;
-  final VoidCallback onEditLimit;
+  final VoidCallback onTap;
 
-  const CategoryBudgetCard({
+  const CategoryBudgetCompactCard({
     super.key,
     required this.category,
-    required this.icon,
-    required this.color,
     required this.spent,
     required this.limit,
-    required this.currency,
-    required this.onEditLimit,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final meta = CategoryUtils.getMeta(category);
     final hasLimit = limit > 0;
-    final progress = hasLimit ? (spent / limit).clamp(0.0, 1.5) : 0.0;
+    final progress = hasLimit ? (spent / limit).clamp(0.0, 1.0) : 0.0;
     final isOverBudget = hasLimit && spent > limit;
+    final format = NumberFormat.compact(locale: 'tr_TR');
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isOverBudget
-              ? Colors.red.withOpacity(0.3)
-              : theme.colorScheme.outline.withOpacity(0.12),
+    return BouncingButton(
+      onTap: onTap,
+      child: Container(
+        width: 142,
+        margin: const EdgeInsets.only(right: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 12),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: isOverBudget
+                ? Colors.red.withValues(alpha: 0.4)
+                : theme.colorScheme.outline.withValues(alpha: 0.16),
+            width: 1,
+          ),
         ),
-      ),
-      child: Column(
-        children: [
-          // Top row: icon + name + spent/limit
-          Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Center(
-                  child: Text(icon, style: const TextStyle(fontSize: 22)),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _categoryDisplayName(category),
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: theme.colorScheme.onSurface,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      hasLimit
-                          ? '\$${spent.toStringAsFixed(2)} / \$${limit.toStringAsFixed(0)}'
-                          : '\$${spent.toStringAsFixed(2)}',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: isOverBudget
-                            ? Colors.red.shade400
-                            : theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (isOverBudget)
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
+                  width: 32,
+                  height: 32,
                   decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
+                    color: meta.color.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.warning_amber_rounded,
-                        size: 14,
-                        color: Colors.red.shade400,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Aşıldı',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.red.shade400,
-                        ),
-                      ),
-                    ],
+                  child: Center(
+                    child: Icon(meta.icon, color: meta.color, size: 17),
                   ),
                 ),
-              if (!isOverBudget && hasLimit)
+                if (hasLimit)
+                  Text(
+                    '%${(progress * 100).toInt()}',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      color: isOverBudget ? Colors.red.shade400 : meta.color,
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
                 Text(
-                  '${(progress * 100).toStringAsFixed(0)}%',
+                  meta.displayName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    color: _getProgressColor(progress),
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.2,
+                    color: theme.colorScheme.onSurface,
                   ),
                 ),
-              const SizedBox(width: 4),
-              InkWell(
-                onTap: onEditLimit,
-                borderRadius: BorderRadius.circular(8),
-                child: Padding(
-                  padding: const EdgeInsets.all(4),
-                  child: Icon(
-                    hasLimit ? Icons.edit_outlined : Icons.add_circle_outline,
-                    size: 18,
-                    color: theme.colorScheme.primary.withOpacity(0.7),
+                const SizedBox(height: 2),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    hasLimit
+                        ? '${format.format(spent)} / ${format.format(limit)} ₺'
+                        : '${format.format(spent)} ₺',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
-          // Progress bar
-          if (hasLimit) ...[
-            const SizedBox(height: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: TweenAnimationBuilder<double>(
-                tween: Tween(begin: 0, end: progress.clamp(0.0, 1.0)),
-                duration: const Duration(milliseconds: 800),
-                curve: Curves.easeOutCubic,
-                builder: (context, value, _) {
-                  return LinearProgressIndicator(
-                    value: value,
-                    minHeight: 8,
-                    backgroundColor: theme.colorScheme.onSurface.withOpacity(
-                      0.06,
-                    ),
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      isOverBudget
-                          ? Colors.red.shade400
-                          : _getProgressColor(progress),
-                    ),
-                  );
-                },
-              ),
+              ],
             ),
-          ],
-          if (!hasLimit) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 6),
             ClipRRect(
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: BorderRadius.circular(4),
               child: LinearProgressIndicator(
-                value: 0,
-                minHeight: 6,
-                backgroundColor: theme.colorScheme.onSurface.withOpacity(0.06),
+                value: hasLimit ? progress : 0.0,
+                minHeight: 4,
+                backgroundColor: theme.colorScheme.onSurface.withValues(
+                  alpha: 0.08,
+                ),
                 valueColor: AlwaysStoppedAnimation<Color>(
-                  color.withOpacity(0.3),
+                  isOverBudget ? Colors.red.shade400 : meta.color,
                 ),
               ),
             ),
           ],
-        ],
+        ),
       ),
     );
-  }
-
-  Color _getProgressColor(double progress) {
-    if (progress < 0.5) return color;
-    if (progress < 0.75) return Colors.orange;
-    if (progress < 1.0) return Colors.deepOrange;
-    return Colors.red;
-  }
-
-  String _categoryDisplayName(String category) {
-    switch (category) {
-      case 'Food & Drinks':
-        return 'Yiyecek & İçecek';
-      case 'Transportation':
-        return 'Ulaşım';
-      case 'Sightseeing':
-        return 'Gezi';
-      case 'Shopping':
-        return 'Alışveriş';
-      case 'Accommodation':
-        return 'Konaklama';
-      default:
-        return category;
-    }
   }
 }

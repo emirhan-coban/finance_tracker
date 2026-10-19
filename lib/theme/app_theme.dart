@@ -1,95 +1,87 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  // Colors from Design
-  static const Color primaryColor = Color.fromARGB(
-    255,
-    19,
-    109,
-    236,
-  ); // Vibrant Blue
-  static const Color backgroundDark = Color(0xFF000000); // Deep Black
-  static const Color surfaceDark = Color(0xFF18181B); // Zinc 900
-  static const Color surfaceLight = Color(0xFF27272A); // Zinc 800
+  // Signature Wise Brand Colors
+  static const Color wiseLime = Color(0xFF9FE870); // Wise Electric Lime
+  static const Color wiseForest = Color(0xFF163300); // Wise Deep Forest Green
+  static const Color wiseForestLight = Color(0xFF244F00);
+  static const Color wiseLimePressed = Color(0xFF8BD55C);
 
-  // Light Theme Colors
-  static const Color backgroundLight = Color(0xFFF4F4F5); // Zinc 100
-  static const Color surfaceLightMode = Color(0xFFFFFFFF); // White
-  static const Color textBlack = Color(0xFF18181B); // Zinc 900
-  static const Color textGray = Color(0xFF52525B); // Zinc 600
-  static const Color borderLight = Color(0xFFE4E4E7); // Zinc 200
-  static const Color fieldLight = Color(0xFFF4F4F5); // Zinc 100
+  // Light Theme Colors (Wise Soft Sage & Linen — Eliminates sterile hospital white)
+  static const Color backgroundLight = Color(0xFFECEFE6); // Warm Organic Sage
+  static const Color surfaceLightMode = Color(0xFFFFFFFF); // Clean Card Surface
+  static const Color surfaceSecondaryLight = Color(0xFFF4F6F0);
+  static const Color fieldLight = Color(0xFFE1E5DC); // Input field background
+  static const Color borderLight = Color(0xFFD3D9CC); // Warm subtle border
 
-  // Gradient Colors
-  static const LinearGradient mainGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [
-      Color(0xFF2D6AEE), // Bright Blue
-      Color(0xFF8B5CF6), // Violet
-    ],
-  );
+  // Dark Theme Colors (Wise Deep Forest Graphite)
+  static const Color backgroundDark = Color(0xFF090D09); // Deep Obsidian
+  static const Color surfaceDark = Color(0xFF121812); // Forest Graphite Card
+  static const Color surfaceElevatedDark = Color(0xFF192219);
+  static const Color fieldDark = Color(0xFF1A221A);
+  static const Color borderDark = Color(0xFF253325);
 
-  static const LinearGradient cardGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [Color(0xFF18181B), Color(0xFF27272A)],
-  );
-  static const Color borderDark = Color(0xFF2C2C2E);
+  // Typography Colors
+  static const Color textForest = Color(0xFF163300); // Deep High-Contrast Text
+  static const Color textForestMuted = Color(0xFF55694D); // Soft Forest Sage
   static const Color textWhite = Color(0xFFFFFFFF);
-  static const Color textSecondary = Color(0xFFA1A1AA);
-  static const Color textMuted = Color(0xFF71717A);
-  static const Color fieldDark = Color(0xFF1C1C1E);
+  static const Color textSecondary = Color(0xFFA5B8A5);
+  static const Color textMuted = Color(0xFF708470);
 
-  // Text Styles
-  static TextStyle get displayFont => GoogleFonts.inter();
+  // Danger
+  static const Color danger = Color(0xFFDC2626);
+
+  // Fallbacks
+  static const LinearGradient mainGradient = LinearGradient(
+    colors: [wiseForest, wiseForestLight],
+  );
 
   static ThemeData get darkTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
       scaffoldBackgroundColor: backgroundDark,
-      primaryColor: primaryColor,
+      primaryColor: wiseLime,
       colorScheme: const ColorScheme.dark(
-        primary: primaryColor,
+        primary: wiseLime,
+        onPrimary: wiseForest,
+        secondary: wiseLime,
         surface: surfaceDark,
         onSurface: textWhite,
-        background: backgroundDark,
-        secondary: primaryColor,
-        outline: borderDark,
         surfaceContainerHighest: fieldDark,
+        outline: borderDark,
         onSurfaceVariant: textSecondary,
+        error: danger,
       ),
-      textTheme: GoogleFonts.interTextTheme(
-        ThemeData.dark().textTheme,
-      ).apply(bodyColor: textWhite, displayColor: textWhite),
       iconTheme: const IconThemeData(color: textWhite),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: fieldDark,
-        hintStyle: const TextStyle(color: textMuted),
+        hintStyle: const TextStyle(color: textMuted, fontSize: 16),
         border: OutlineInputBorder(
           borderSide: const BorderSide(color: borderDark),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
         ),
         enabledBorder: OutlineInputBorder(
           borderSide: const BorderSide(color: borderDark),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderSide: const BorderSide(color: primaryColor),
-          borderRadius: BorderRadius.circular(16),
+        focusedBorder: const OutlineInputBorder(
+          borderSide: BorderSide(color: wiseLime, width: 2),
+          borderRadius: BorderRadius.all(Radius.circular(18)),
         ),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 20,
-          vertical: 16,
+          vertical: 18,
         ),
       ),
       cardTheme: CardThemeData(
         color: surfaceDark,
         elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(22),
+          side: const BorderSide(color: borderDark, width: 1),
+        ),
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent,
@@ -102,16 +94,32 @@ class AppTheme {
           borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
         ),
       ),
-      dividerTheme: DividerThemeData(color: borderDark),
+      dividerTheme: const DividerThemeData(color: borderDark, thickness: 1),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: surfaceElevatedDark,
+        contentTextStyle: const TextStyle(
+          color: textWhite,
+          fontWeight: FontWeight.w600,
+          fontSize: 14,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: borderDark),
+        ),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        elevation: 6,
+      ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: primaryColor,
-          foregroundColor: textWhite,
+          backgroundColor: wiseLime,
+          foregroundColor: wiseForest,
+          elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(18),
           ),
-          textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
+          padding: const EdgeInsets.symmetric(vertical: 18),
         ),
       ),
     );
@@ -122,51 +130,52 @@ class AppTheme {
       useMaterial3: true,
       brightness: Brightness.light,
       scaffoldBackgroundColor: backgroundLight,
-      primaryColor: primaryColor,
+      primaryColor: wiseForest,
       colorScheme: const ColorScheme.light(
-        primary: primaryColor,
+        primary: wiseForest,
+        onPrimary: wiseLime,
+        secondary: wiseForestLight,
         surface: surfaceLightMode,
-        onSurface: textBlack,
-        background: backgroundLight,
-        secondary: primaryColor,
-        outline: borderLight,
+        onSurface: textForest,
         surfaceContainerHighest: fieldLight,
-        onSurfaceVariant: textGray,
+        outline: borderLight,
+        onSurfaceVariant: textForestMuted,
+        error: danger,
       ),
-      textTheme: GoogleFonts.interTextTheme(
-        ThemeData.light().textTheme,
-      ).apply(bodyColor: textBlack, displayColor: textBlack),
-      iconTheme: const IconThemeData(color: textBlack),
+      iconTheme: const IconThemeData(color: textForest),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: fieldLight,
-        hintStyle: const TextStyle(color: textGray),
+        fillColor: surfaceLightMode,
+        hintStyle: const TextStyle(color: textForestMuted, fontSize: 16),
         border: OutlineInputBorder(
           borderSide: const BorderSide(color: borderLight),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
         ),
         enabledBorder: OutlineInputBorder(
           borderSide: const BorderSide(color: borderLight),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderSide: const BorderSide(color: primaryColor),
-          borderRadius: BorderRadius.circular(16),
+        focusedBorder: const OutlineInputBorder(
+          borderSide: BorderSide(color: wiseForest, width: 2),
+          borderRadius: BorderRadius.all(Radius.circular(18)),
         ),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 20,
-          vertical: 16,
+          vertical: 18,
         ),
       ),
       cardTheme: CardThemeData(
         color: surfaceLightMode,
         elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(22),
+          side: const BorderSide(color: borderLight, width: 1),
+        ),
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: textBlack,
+        foregroundColor: textForest,
       ),
       bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: surfaceLightMode,
@@ -174,16 +183,29 @@ class AppTheme {
           borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
         ),
       ),
-      dividerTheme: DividerThemeData(color: borderLight),
+      dividerTheme: const DividerThemeData(color: borderLight, thickness: 1),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: wiseForest,
+        contentTextStyle: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+          fontSize: 14,
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        elevation: 6,
+      ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: primaryColor,
-          foregroundColor: textWhite,
+          backgroundColor: wiseForest,
+          foregroundColor: wiseLime,
+          elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(18),
           ),
-          textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
+          padding: const EdgeInsets.symmetric(vertical: 18),
         ),
       ),
     );

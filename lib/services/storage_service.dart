@@ -25,11 +25,6 @@ class StorageService {
     return jsonList.map((json) => Expense.fromJson(json)).toList();
   }
 
-  Future<void> clearExpenses() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_expensesKey);
-  }
-
   Future<void> saveBudgets(List<CategoryBudget> budgets) async {
     final prefs = await SharedPreferences.getInstance();
     final jsonList = budgets.map((b) => b.toJson()).toList();

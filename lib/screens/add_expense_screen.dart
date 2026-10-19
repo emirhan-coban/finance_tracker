@@ -5,6 +5,9 @@ import 'package:provider/provider.dart';
 import 'package:finance_tracker/providers/expense_provider.dart';
 import 'package:finance_tracker/models/expense.dart';
 import 'package:finance_tracker/services/receipt_scanning_service.dart';
+import 'package:finance_tracker/utils/category_utils.dart';
+import 'package:finance_tracker/widgets/bouncing_button.dart';
+import 'package:finance_tracker/theme/app_theme.dart';
 import 'package:image_picker/image_picker.dart';
 
 class AddExpenseScreen extends StatefulWidget {
@@ -17,16 +20,17 @@ class AddExpenseScreen extends StatefulWidget {
 class _AddExpenseScreenState extends State<AddExpenseScreen> {
   final _formKey = GlobalKey<FormState>();
   String _selectedCategory = 'Food & Drinks';
+  String _selectedCurrency = 'TRY';
 
   final TextEditingController _amountController = TextEditingController();
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _noteController = TextEditingController();
-  final TextEditingController _dateController = TextEditingController(
-    text: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+  final TextEditingController _nameController = TextEditingController(
+    text: 'Yiyecek & İçecek',
   );
+  final TextEditingController _noteController = TextEditingController();
 
   DateTime _selectedDate = DateTime.now();
   bool _isScanning = false;
+  bool _showExtraDetails = false;
   final _receiptService = ReceiptScanningService();
 
   @override
@@ -34,13 +38,39 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     _amountController.dispose();
     _nameController.dispose();
     _noteController.dispose();
-    _dateController.dispose();
     _receiptService.dispose();
     super.dispose();
   }
 
+  void _addQuickAmount(double additional) {
+    HapticFeedback.selectionClick();
+    final current =
+        double.tryParse(_amountController.text.replaceAll(',', '.')) ?? 0.0;
+    final updated = current + additional;
+    setState(() {
+      _amountController.text = updated % 1 == 0
+          ? updated.toInt().toString()
+          : updated.toStringAsFixed(2);
+    });
+  }
+
+  void _onCategorySelected(String categoryId, String displayName) {
+    HapticFeedback.selectionClick();
+    setState(() {
+      _selectedCategory = categoryId;
+      // Auto-populate name if empty or previous default category name
+      if (_nameController.text.isEmpty ||
+          CategoryUtils.categories.any(
+            (c) => c.displayName == _nameController.text,
+          )) {
+        _nameController.text = displayName;
+      }
+    });
+  }
+
   Future<void> _scanReceipt() async {
     try {
+      HapticFeedback.lightImpact();
       setState(() => _isScanning = true);
 
       final XFile? image = await _receiptService.pickImage(ImageSource.gallery);
@@ -58,16 +88,16 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           }
           if (result['date'] != null) {
             _selectedDate = result['date'];
-            _dateController.text = DateFormat(
-              'yyyy-MM-dd',
-            ).format(_selectedDate);
           }
           if (result['merchant'] != null) {
             _nameController.text = result['merchant'];
           }
           _isScanning = false;
+          _showExtraDetails = true;
         });
 
+        HapticFeedback.mediumImpact();
+        ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Fiş başarıyla tarandı!')));
@@ -75,6 +105,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isScanning = false);
+        ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Hata oluştu: $e')));
@@ -83,158 +114,174 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   }
 
   void _saveExpense() {
-    debugPrint('Save button pressed');
-    debugPrint('Amount: ${_amountController.text}');
-    debugPrint('Name: ${_nameController.text}');
-
     if (_formKey.currentState!.validate()) {
-      debugPrint('Form validation passed');
+      HapticFeedback.heavyImpact();
       final provider = Provider.of<ExpenseProvider>(context, listen: false);
+
+      final title = _nameController.text.trim().isEmpty
+          ? CategoryUtils.getDisplayName(_selectedCategory)
+          : _nameController.text.trim();
 
       final expense = Expense(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
-        name: _nameController.text.trim(),
-        amount: double.parse(_amountController.text),
-        currency: 'USD',
+        name: title,
+        amount: double.parse(_amountController.text.replaceAll(',', '.')),
+        currency: _selectedCurrency,
         date: _selectedDate,
         category: _selectedCategory,
-        icon: _getCategoryIcon(_selectedCategory),
+        icon: _selectedCategory,
         note: _noteController.text.trim().isEmpty
             ? null
             : _noteController.text.trim(),
       );
 
-      debugPrint('Adding expense: ${expense.name} - \$${expense.amount}');
       provider.addExpense(expense);
-      debugPrint('Expense added, navigating back');
       Navigator.pop(context);
     } else {
-      debugPrint('Form validation FAILED');
-    }
-  }
-
-  String _getCategoryIcon(String category) {
-    switch (category) {
-      case 'Food & Drinks':
-        return '🍕';
-      case 'Transportation':
-        return '🚕';
-      case 'Sightseeing':
-        return '🎭';
-      case 'Shopping':
-        return '🛍️';
-      case 'Accommodation':
-        return '🏨';
-      default:
-        return '💰';
+      HapticFeedback.vibrate();
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
-        child: Stack(
-          children: [
-            Form(
-              key: _formKey,
-              child: Column(
-                children: [
-                  _buildHeader(context, theme),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        children: [
-                          _buildAmountInput(theme),
-                          const SizedBox(height: 24),
-                          _buildForm(theme),
-                          const SizedBox(height: 100),
-                        ],
+        bottom: false,
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 580),
+            child: Stack(
+              children: [
+                Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      _buildTopBar(context, theme),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          physics: const BouncingScrollPhysics(),
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 4),
+                              _buildAmountSection(theme),
+                              const SizedBox(height: 10),
+                              _buildQuickAmountChips(theme),
+                              const SizedBox(height: 14),
+                              _buildCurrencySelector(theme, isDark),
+                              const SizedBox(height: 24),
+                              _buildCategorySelector(theme),
+                              const SizedBox(height: 20),
+                              _buildNameInput(theme),
+                              const SizedBox(height: 18),
+                              _buildCollapsibleExtraSection(theme),
+                              const SizedBox(height: 110),
+                            ],
+                          ),
+                        ),
+                      ),
+                      _buildBottomButton(theme, isDark),
+                    ],
+                  ),
+                ),
+                if (_isScanning)
+                  Container(
+                    color: Colors.black54,
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        color: isDark ? AppTheme.wiseLime : AppTheme.wiseForest,
                       ),
                     ),
                   ),
-                  _buildSaveButton(theme),
-                ],
-              ),
+              ],
             ),
-            if (_isScanning)
-              Container(
-                color: Colors.black54,
-                child: const Center(child: CircularProgressIndicator()),
-              ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildHeader(BuildContext context, ThemeData theme) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+  Widget _buildTopBar(BuildContext context, ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: Colors.transparent,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: IconButton(
-              onPressed: () => Navigator.pop(context),
-              icon: const Icon(Icons.arrow_back_ios_new, size: 20),
-              padding: EdgeInsets.zero,
-              color: theme.colorScheme.onSurface,
+          BouncingButton(
+            onTap: () => Navigator.pop(context),
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              child: Icon(
+                Icons.close_rounded,
+                size: 24,
+                color: theme.colorScheme.onSurface,
+              ),
             ),
           ),
           Text(
-            'Yeni Harcama Ekle',
-            textAlign: TextAlign.center,
+            'Harcama Ekle',
             style: TextStyle(
               fontSize: 17,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.3,
               color: theme.colorScheme.onSurface,
             ),
           ),
-          IconButton(
-            onPressed: _scanReceipt,
-            icon: const Icon(Icons.document_scanner_outlined, size: 24),
-            color: theme.colorScheme.onSurface,
-            tooltip: 'Fiş Tara',
+          BouncingButton(
+            onTap: _scanReceipt,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              child: Icon(
+                Icons.document_scanner_outlined,
+                size: 22,
+                color: theme.colorScheme.primary,
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildAmountInput(ThemeData theme) {
-    return Consumer<ExpenseProvider>(
-      builder: (context, provider, child) {
-        final amount = double.tryParse(_amountController.text) ?? 0.0;
-        final tryAmount = amount * provider.usdRate;
+  Widget _buildAmountSection(ThemeData theme) {
+    String currencySymbol = '₺';
+    if (_selectedCurrency == 'USD') currencySymbol = '\$';
+    if (_selectedCurrency == 'EUR') currencySymbol = '€';
 
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-          child: Column(
-            children: [
-              Row(
+    return Center(
+      child: Column(
+        children: [
+          SizedBox(
+            width: double.infinity,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.center,
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
                 children: [
                   Text(
-                    '\$',
+                    currencySymbol,
                     style: TextStyle(
                       fontSize: 36,
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.onSurface.withOpacity(0.4),
+                      fontWeight: FontWeight.w800,
+                      color: theme.colorScheme.primary,
                     ),
                   ),
-                  const SizedBox(width: 6),
-                  Flexible(
-                    child: IntrinsicWidth(
+                  const SizedBox(width: 8),
+                  IntrinsicWidth(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minWidth: 50,
+                        maxWidth: MediaQuery.of(context).size.width - 80,
+                      ),
                       child: TextFormField(
                         controller: _amountController,
                         autofocus: true,
@@ -243,496 +290,491 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                         ),
                         inputFormatters: [
                           FilteringTextInputFormatter.allow(
-                            RegExp(r'^\d*\.?\d{0,2}'),
+                            RegExp(r'^\d*[\.,]?\d{0,2}'),
                           ),
                         ],
-                        textAlign: TextAlign.center,
+                        textAlign: TextAlign.left,
                         style: TextStyle(
-                          fontSize: 56,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 52,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -1.5,
                           color: theme.colorScheme.onSurface,
-                          height: 1.0,
+                          height: 1.05,
                         ),
                         decoration: InputDecoration(
-                          fillColor: theme.scaffoldBackgroundColor,
-                          filled: true,
+                          fillColor: Colors.transparent,
+                          filled: false,
                           border: InputBorder.none,
                           focusedBorder: InputBorder.none,
                           enabledBorder: InputBorder.none,
                           errorBorder: InputBorder.none,
                           focusedErrorBorder: InputBorder.none,
-                          hintText: '0.00',
+                          hintText: '0',
                           hintStyle: TextStyle(
-                            color: theme.colorScheme.onSurface.withOpacity(0.1),
-                            fontSize: 56,
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.2,
+                            ),
+                            fontSize: 52,
+                            fontWeight: FontWeight.w900,
                           ),
                           errorStyle: const TextStyle(fontSize: 0, height: 0),
                           contentPadding: EdgeInsets.zero,
                           isDense: true,
                         ),
                         validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return '';
-                          }
-                          if (double.tryParse(value) == null ||
-                              double.parse(value) <= 0) {
-                            return '';
-                          }
+                          if (value == null || value.trim().isEmpty) return '';
+                          final numVal = double.tryParse(
+                            value.replaceAll(',', '.'),
+                          );
+                          if (numVal == null || numVal <= 0) return '';
                           return null;
                         },
-                        onChanged: (value) {
-                          setState(() {});
-                        },
+                        onChanged: (value) => setState(() {}),
                       ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest.withOpacity(
-                    0.5,
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: theme.colorScheme.outline.withOpacity(0.1),
-                  ),
-                ),
-                child: Text.rich(
-                  TextSpan(
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                    children: [
-                      TextSpan(
-                        text: '≈ ',
-                        style: TextStyle(
-                          color: theme.colorScheme.onSurface.withOpacity(0.4),
-                        ),
-                      ),
-                      TextSpan(
-                        text: tryAmount.toStringAsFixed(2),
-                        style: const TextStyle(fontWeight: FontWeight.w500),
-                      ),
-                      const TextSpan(text: ' '),
-                      TextSpan(
-                        text: 'TRY',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: theme.colorScheme.primary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-        );
-      },
-    );
-  }
-
-  Widget _buildForm(ThemeData theme) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        children: [
-          _buildInputField(
-            theme: theme,
-            label: 'HARCAMA ADI',
-            icon: Icons.shopping_bag_outlined,
-            hint: 'Örn: Akşam Yemeği',
-            controller: _nameController,
-          ),
-          const SizedBox(height: 24),
-          _buildDropdownField(
-            theme: theme,
-            label: 'KATEGORİ',
-            icon: Icons.category_outlined,
-          ),
-          const SizedBox(height: 24),
-          _buildInputField(
-            theme: theme,
-            label: 'TARİH',
-            icon: Icons.calendar_today_outlined,
-            hint: '2024-05-20',
-            controller: _dateController,
-            isDate: true,
-          ),
-          const SizedBox(height: 24),
-          _buildInputField(
-            theme: theme,
-            label: 'NOT (OPSİYONEL)',
-            icon: Icons.description_outlined,
-            hint: 'Detay ekleyin...',
-            controller: _noteController,
-            maxLines: 3,
-            isOptional: true,
+          const SizedBox(height: 2),
+          Text(
+            'Harcama tutarını girin',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildInputField({
-    required ThemeData theme,
-    required String label,
-    required IconData icon,
-    required String hint,
-    TextEditingController? controller,
-    bool isDate = false,
-    int maxLines = 1,
-    bool isOptional = false,
-  }) {
+  Widget _buildQuickAmountChips(ThemeData theme) {
+    final quickAmounts = [50.0, 100.0, 250.0, 500.0];
+    return Center(
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 8,
+        runSpacing: 6,
+        children: quickAmounts.map((amt) {
+          return BouncingButton(
+            onTap: () => _addQuickAmount(amt),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.45,
+                ),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: theme.colorScheme.outline.withValues(alpha: 0.15),
+                ),
+              ),
+              child: Text(
+                '+${amt.toInt()} ₺',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildCurrencySelector(ThemeData theme, bool isDark) {
+    const currencies = ['TRY', 'USD', 'EUR'];
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: currencies.map((curr) {
+        final isSelected = _selectedCurrency == curr;
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 5),
+          child: BouncingButton(
+            onTap: () {
+              setState(() => _selectedCurrency = curr);
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 140),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? (isDark ? AppTheme.wiseLime : AppTheme.wiseForest)
+                    : theme.colorScheme.surface,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isSelected
+                      ? Colors.transparent
+                      : theme.colorScheme.outline.withValues(alpha: 0.2),
+                  width: 1,
+                ),
+              ),
+              child: Text(
+                isSelected ? '$curr ✓' : curr,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: isSelected
+                      ? (isDark ? AppTheme.wiseForest : AppTheme.wiseLime)
+                      : theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildCategorySelector(ThemeData theme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 8),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              color: theme.colorScheme.onSurfaceVariant,
-              letterSpacing: 0.8,
-            ),
-          ),
-        ),
-        TextFormField(
-          controller: controller,
-          readOnly: isDate,
-          maxLines: maxLines,
+        Text(
+          'Kategori',
           style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w500,
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
             color: theme.colorScheme.onSurface,
           ),
-          validator: isOptional
-              ? null
-              : (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Bu alan zorunludur';
-                  }
-                  return null;
-                },
-          onTap: isDate
-              ? () async {
-                  final date = await showDatePicker(
-                    context: context,
-                    initialDate: _selectedDate,
-                    firstDate: DateTime(2020),
-                    lastDate: DateTime(2030),
-                  );
-                  if (date != null) {
-                    setState(() {
-                      _selectedDate = date;
-                      controller?.text = DateFormat('yyyy-MM-dd').format(date);
-                    });
-                  }
-                }
-              : null,
+        ),
+        const SizedBox(height: 10),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final isWide = constraints.maxWidth > 420;
+            return GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: CategoryUtils.categories.length,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: isWide ? 3 : 2,
+                mainAxisSpacing: 8,
+                crossAxisSpacing: 8,
+                childAspectRatio: isWide ? 2.8 : 2.5,
+              ),
+              itemBuilder: (context, index) {
+                final cat = CategoryUtils.categories[index];
+                final isSelected = _selectedCategory == cat.id;
+
+                return BouncingButton(
+                  onTap: () => _onCategorySelected(cat.id, cat.displayName),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 140),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? theme.colorScheme.primary.withValues(alpha: 0.14)
+                          : theme.colorScheme.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: isSelected
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.outline.withValues(alpha: 0.18),
+                        width: isSelected ? 2 : 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: cat.color.withValues(alpha: 0.16),
+                            borderRadius: BorderRadius.circular(11),
+                          ),
+                          child: Icon(cat.icon, color: cat.color, size: 18),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            cat.displayName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: isSelected
+                                  ? FontWeight.w800
+                                  : FontWeight.w600,
+                              color: isSelected
+                                  ? theme.colorScheme.onSurface
+                                  : theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                        if (isSelected)
+                          Icon(
+                            Icons.check_circle_rounded,
+                            size: 16,
+                            color: theme.colorScheme.primary,
+                          ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNameInput(ThemeData theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Harcama Adı',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            color: theme.colorScheme.onSurface,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: _nameController,
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: theme.colorScheme.onSurface,
+          ),
           decoration: InputDecoration(
+            hintText: 'Örn: Akşam Yemeği, Benzin',
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
             prefixIcon: Icon(
-              icon,
+              Icons.edit_note_rounded,
               color: theme.colorScheme.onSurfaceVariant,
-              size: 20,
+              size: 22,
             ),
-            hintText: hint,
-            hintStyle: TextStyle(
-              color: theme.colorScheme.onSurfaceVariant.withOpacity(0.4),
-            ),
-            filled: true,
-            fillColor: theme.colorScheme.surfaceContainerHighest,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(
-                color: theme.colorScheme.outline.withOpacity(0.15),
-              ),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(
-                color: theme.colorScheme.outline.withOpacity(0.15),
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(
-                color: theme.colorScheme.primary,
-                width: 2,
-              ),
-            ),
-            contentPadding: EdgeInsets.symmetric(
-              horizontal: 48,
-              vertical: maxLines > 1 ? 16 : 18,
-            ),
+            suffixIcon: _nameController.text.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(Icons.clear, size: 18),
+                    onPressed: () => setState(() => _nameController.clear()),
+                  )
+                : null,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildDropdownField({
-    required ThemeData theme,
-    required String label,
-    required IconData icon,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 8),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              color: theme.colorScheme.onSurfaceVariant,
-              letterSpacing: 0.8,
-            ),
-          ),
+  // Faz 2: Collapsible extra details (Date, Note, Scan receipt)
+  Widget _buildCollapsibleExtraSection(ThemeData theme) {
+    String formattedDate;
+    try {
+      formattedDate = DateFormat('d MMMM yyyy', 'tr_TR').format(_selectedDate);
+    } catch (_) {
+      formattedDate = DateFormat('d MMMM yyyy').format(_selectedDate);
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.16),
         ),
-        InkWell(
-          onTap: () {
-            _showCategoryModal(context);
-          },
-          borderRadius: BorderRadius.circular(16),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: theme.colorScheme.outline.withOpacity(0.15),
+      ),
+      child: Column(
+        children: [
+          BouncingButton(
+            onTap: () {
+              setState(() => _showExtraDetails = !_showExtraDetails);
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.tune_rounded,
+                        size: 18,
+                        color: theme.colorScheme.primary,
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Tarih & Not Seçenekleri',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _showExtraDetails ? 'Gizle' : formattedDate,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        _showExtraDetails
+                            ? Icons.keyboard_arrow_up
+                            : Icons.keyboard_arrow_down,
+                        size: 20,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-            child: Row(
-              children: [
-                Icon(icon, color: theme.colorScheme.onSurfaceVariant, size: 20),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    _selectedCategory == 'Food & Drinks'
-                        ? 'Yiyecek & İçecek'
-                        : _selectedCategory == 'Transportation'
-                        ? 'Ulaşım'
-                        : _selectedCategory == 'Sightseeing'
-                        ? 'Gezi'
-                        : _selectedCategory == 'Shopping'
-                        ? 'Alışveriş'
-                        : _selectedCategory == 'Accommodation'
-                        ? 'Konaklama'
-                        : _selectedCategory,
+          ),
+          if (_showExtraDetails) ...[
+            Divider(
+              height: 1,
+              color: theme.colorScheme.outline.withValues(alpha: 0.1),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  // Date Row
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.calendar_today_rounded,
+                            size: 18,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            formattedDate,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: theme.colorScheme.onSurface,
+                            ),
+                          ),
+                        ],
+                      ),
+                      TextButton(
+                        onPressed: () async {
+                          final date = await showDatePicker(
+                            context: context,
+                            initialDate: _selectedDate,
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime(2030),
+                          );
+                          if (date != null) {
+                            setState(() => _selectedDate = date);
+                          }
+                        },
+                        child: Text(
+                          'Değiştir',
+                          style: TextStyle(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  // Note Field
+                  TextFormField(
+                    controller: _noteController,
+                    maxLines: 2,
                     style: TextStyle(
-                      fontSize: 15,
+                      fontSize: 14,
                       fontWeight: FontWeight.w500,
                       color: theme.colorScheme.onSurface,
                     ),
+                    decoration: InputDecoration(
+                      hintText: 'Açıklama notu ekleyin...',
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                    ),
                   ),
-                ),
-                Text(
-                  _getCategoryIcon(_selectedCategory),
-                  style: const TextStyle(fontSize: 20),
-                ),
-                const SizedBox(width: 8),
-                Icon(
-                  Icons.keyboard_arrow_down_rounded,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  void _showCategoryModal(BuildContext context) {
-    final theme = Theme.of(context);
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
-        decoration: BoxDecoration(
-          color:
-              theme.bottomSheetTheme.backgroundColor ??
-              theme.colorScheme.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-        ),
-        child: Column(
-          children: [
-            const SizedBox(height: 16),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.onSurface.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 32),
-            Text(
-              'Kategori Seçin',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: theme.colorScheme.onSurface,
-              ),
-            ),
-            const SizedBox(height: 32),
-            Expanded(
-              child: GridView.count(
-                crossAxisCount: 2,
-                mainAxisSpacing: 16,
-                crossAxisSpacing: 16,
-                padding: const EdgeInsets.all(24),
-                children: [
-                  _buildCategoryItem(
-                    theme,
-                    'Food & Drinks',
-                    'Yiyecek & İçecek',
-                    '🍕',
-                    Colors.orange,
-                  ),
-                  _buildCategoryItem(
-                    theme,
-                    'Transportation',
-                    'Ulaşım',
-                    '🚕',
-                    Colors.blue,
-                  ),
-                  _buildCategoryItem(
-                    theme,
-                    'Sightseeing',
-                    'Gezi',
-                    '🎭',
-                    Colors.deepPurple,
-                  ),
-                  _buildCategoryItem(
-                    theme,
-                    'Shopping',
-                    'Alışveriş',
-                    '🛍️',
-                    Colors.pink,
-                  ),
-                  _buildCategoryItem(
-                    theme,
-                    'Accommodation',
-                    'Konaklama',
-                    '🏨',
-                    Colors.teal,
+                  const SizedBox(height: 12),
+                  // Receipt scan action
+                  OutlinedButton.icon(
+                    onPressed: _scanReceipt,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: theme.colorScheme.primary,
+                      side: BorderSide(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.4),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      minimumSize: const Size.fromHeight(46),
+                    ),
+                    icon: const Icon(Icons.camera_alt_outlined, size: 18),
+                    label: const Text(
+                      'Fişten Tara',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
                   ),
                 ],
               ),
             ),
           ],
-        ),
+        ],
       ),
     );
   }
 
-  Widget _buildCategoryItem(
-    ThemeData theme,
-    String id,
-    String label,
-    String icon,
-    Color color,
-  ) {
-    final isSelected = _selectedCategory == id;
-    return InkWell(
-      onTap: () {
-        setState(() => _selectedCategory = id);
-        Navigator.pop(context);
-      },
-      borderRadius: BorderRadius.circular(24),
-      child: Container(
-        decoration: BoxDecoration(
-          color: isSelected
-              ? color.withOpacity(0.2)
-              : theme.colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: isSelected ? color : Colors.transparent,
-            width: 2,
-          ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Center(
-                child: Text(icon, style: const TextStyle(fontSize: 24)),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                color: isSelected
-                    ? theme.colorScheme.onSurface
-                    : theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSaveButton(ThemeData theme) {
+  Widget _buildBottomButton(ThemeData theme, bool isDark) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
+      padding: EdgeInsets.fromLTRB(
+        20,
+        12,
+        20,
+        MediaQuery.of(context).padding.bottom + 12,
+      ),
       decoration: BoxDecoration(
         color: theme.scaffoldBackgroundColor,
         border: Border(
-          top: BorderSide(color: theme.colorScheme.outline.withOpacity(0.1)),
+          top: BorderSide(
+            color: theme.colorScheme.outline.withValues(alpha: 0.12),
+          ),
         ),
       ),
       child: SizedBox(
         width: double.infinity,
         height: 56,
-        child: ElevatedButton(
-          onPressed: _saveExpense,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: theme.colorScheme.primary,
-            foregroundColor: Colors.white,
-            elevation: 0,
-            shadowColor: theme.colorScheme.primary.withOpacity(0.2),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+        child: BouncingButton(
+          onTap: _saveExpense,
+          child: Container(
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: isDark ? AppTheme.wiseLime : AppTheme.wiseForest,
+              borderRadius: BorderRadius.circular(18),
             ),
-          ),
-          child: const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.check, size: 20),
-              SizedBox(width: 8),
-              Text(
-                'Kaydet',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            child: Text(
+              'Harcamayı Kaydet',
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.2,
+                color: isDark ? AppTheme.wiseForest : AppTheme.wiseLime,
               ),
-            ],
+            ),
           ),
         ),
       ),

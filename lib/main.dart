@@ -1,11 +1,15 @@
 import 'package:finance_tracker/screens/dashboard_screen.dart';
 import 'package:finance_tracker/theme/app_theme.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 import 'package:finance_tracker/providers/expense_provider.dart';
 import 'package:finance_tracker/providers/theme_provider.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('tr_TR', null);
+
   runApp(
     MultiProvider(
       providers: [
