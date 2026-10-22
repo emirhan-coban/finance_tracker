@@ -8,7 +8,12 @@
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.emirhancoban.financetracker"
+      "bundleIdentifier": "com.emirhancoban.financetracker",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Fiş ve faturalarınızı tarayabilmek için kamera izni gereklidir.",
+        "NSPhotoLibraryUsageDescription": "Fiş ve fatura fotoğraflarınızı yükleyebilmek için galeri izni gereklidir."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -23,7 +28,14 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Fiş ve fatura fotoğraflarınızı yükleyebilmek için galeri izni gereklidir.",
+          "cameraPermission": "Fiş ve faturalarınızı tarayabilmek için kamera izni gereklidir."
+        }
+      ]
     ]
   }
 }
