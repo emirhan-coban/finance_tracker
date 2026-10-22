@@ -1,14 +1,14 @@
 {
   "expo": {
-    "name": "Finance Tracker",
-    "slug": "finance-tracker",
+    "name": "Numia",
+    "slug": "numia",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.emirhancoban.financetracker",
+      "bundleIdentifier": "com.emirhancoban.numia",
       "buildNumber": "1",
       "infoPlist": {
         "NSCameraUsageDescription": "Fiş ve faturalarınızı tarayabilmek için kamera izni gereklidir.",
