@@ -38,6 +38,12 @@ export const categories: CategoryMeta[] = [
     icon: 'bed-outline',
     color: '#34D399', // Mint Green
   },
+  {
+    id: 'Other',
+    displayName: 'Diğer',
+    icon: 'ellipsis-horizontal-circle-outline',
+    color: '#64748B', // Slate / Graphite
+  },
 ];
 
 export function getMeta(categoryOrId?: string | null): CategoryMeta {
@@ -45,8 +51,8 @@ export function getMeta(categoryOrId?: string | null): CategoryMeta {
     return {
       id: 'Other',
       displayName: 'Diğer',
-      icon: 'wallet-outline',
-      color: '#10B981',
+      icon: 'ellipsis-horizontal-circle-outline',
+      color: '#64748B',
     };
   }
 
@@ -59,8 +65,8 @@ export function getMeta(categoryOrId?: string | null): CategoryMeta {
     found ?? {
       id: 'Other',
       displayName: 'Diğer',
-      icon: 'wallet-outline',
-      color: '#10B981',
+      icon: 'ellipsis-horizontal-circle-outline',
+      color: '#64748B',
     }
   );
 }

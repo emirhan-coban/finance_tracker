@@ -347,6 +347,7 @@ export default function DashboardScreen() {
                   expense={e}
                   usdRate={exp.usdRate}
                   eurRate={exp.eurRate}
+                  rates={exp.rates}
                 />
               ))
             )}

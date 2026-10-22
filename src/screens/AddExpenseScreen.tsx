@@ -7,6 +7,8 @@ import {
   ScrollView,
   Platform,
   Alert,
+  Modal,
+  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -18,6 +20,14 @@ import * as Haptics from 'expo-haptics';
 import { useTheme } from '../context/ThemeContext';
 import { useExpenses } from '../context/ExpenseContext';
 import { categories, getDisplayName } from '../utils/categoryUtils';
+import {
+  AVAILABLE_CURRENCIES,
+  getCurrencySymbol,
+} from '../services/currencyService';
+import {
+  pickReceiptImage,
+  analyzeReceiptImage,
+} from '../services/receiptService';
 import BouncingButton from '../components/BouncingButton';
 import ResponsiveContainer from '../components/ResponsiveContainer';
 
@@ -36,7 +46,43 @@ export default function AddExpenseScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showExtraDetails, setShowExtraDetails] = useState(false);
 
-  // Quick preset amount pills (+50, +100, +250, +500)
+  // Currency Modal State
+  const [currencyModalVisible, setCurrencyModalVisible] = useState(false);
+  const [customCurrencyInput, setCustomCurrencyInput] = useState('');
+
+  // Receipt Scanner State
+  const [scanModalVisible, setScanModalVisible] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanBanner, setScanBanner] = useState<string | null>(null);
+
+  // 1- Numeric-only amount input filter
+  const handleAmountChange = (text: string) => {
+    if (!text) {
+      setAmount('');
+      return;
+    }
+    // Replace comma with dot for standardized decimal calculations
+    let cleaned = text.replace(/,/g, '.');
+    // Strip everything except 0-9 and dot
+    cleaned = cleaned.replace(/[^0-9.]/g, '');
+    // If starts with dot, prepend zero
+    if (cleaned.startsWith('.')) {
+      cleaned = '0' + cleaned;
+    }
+    // Ensure only one dot exists
+    const parts = cleaned.split('.');
+    if (parts.length > 2) {
+      cleaned = parts[0] + '.' + parts.slice(1).join('');
+    }
+    // Enforce maximum of 2 decimal places
+    if (cleaned.includes('.')) {
+      const [intPart, decPart] = cleaned.split('.');
+      cleaned = `${intPart}.${decPart.slice(0, 2)}`;
+    }
+    setAmount(cleaned);
+  };
+
+  // 2- Quick preset amount (+50, +100, +250, +500)
   const addQuickAmount = (val: number) => {
     const current = parseFloat(amount.replace(',', '.')) || 0;
     const next = current + val;
@@ -44,12 +90,14 @@ export default function AddExpenseScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
   };
 
-  // Auto-populate title when category changes if user hasn't typed a custom title
+  // Auto-populate title when category changes if user hasn't typed custom title
   const onCategorySelected = (catId: string, displayName: string) => {
     setSelectedCategory(catId);
     const isDefaultOrEmpty =
       !name.trim() ||
-      categories.some((c) => c.displayName.toLowerCase() === name.trim().toLowerCase());
+      categories.some(
+        (c) => c.displayName.toLowerCase() === name.trim().toLowerCase()
+      );
     if (isDefaultOrEmpty) {
       setName(displayName);
     }
@@ -62,6 +110,84 @@ export default function AddExpenseScreen() {
     }
     if (date) {
       setSelectedDate(date);
+    }
+  };
+
+  const handleSelectCurrency = (code: string) => {
+    setCurrency(code);
+    setCurrencyModalVisible(false);
+    Haptics.selectionAsync().catch(() => {});
+  };
+
+  const handleCustomCurrencySubmit = () => {
+    const code = customCurrencyInput.trim().toUpperCase();
+    if (code.length >= 2 && code.length <= 5) {
+      setCurrency(code);
+      setCustomCurrencyInput('');
+      setCurrencyModalVisible(false);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(
+        () => {}
+      );
+    } else {
+      Alert.alert('Geçersiz Kur', 'Lütfen geçerli bir para birimi kodu girin (örn: GBP, JPY, CAD).');
+    }
+  };
+
+  // 5- Receipt Scanning Handler
+  const handleScanReceipt = async (source: 'camera' | 'gallery') => {
+    setScanModalVisible(false);
+    try {
+      const asset = await pickReceiptImage(source);
+      if (!asset) return;
+
+      setIsScanning(true);
+      const result = await analyzeReceiptImage(asset);
+      setIsScanning(false);
+
+      if (result.success) {
+        if (result.amount && result.amount > 0) {
+          setAmount(
+            result.amount % 1 === 0
+              ? result.amount.toString()
+              : result.amount.toFixed(2)
+          );
+        }
+        if (result.merchant) {
+          setName(result.merchant);
+        }
+        if (result.date) {
+          setSelectedDate(result.date);
+        }
+        if (result.category) {
+          setSelectedCategory(result.category);
+        }
+
+        Haptics.notificationAsync(
+          Haptics.NotificationFeedbackType.Success
+        ).catch(() => {});
+
+        const info = [
+          result.merchant ? `İşletme: ${result.merchant}` : null,
+          result.amount ? `Tutar: ${result.amount} ₺` : null,
+          result.category ? `Kategori: ${getDisplayName(result.category)}` : null,
+        ]
+          .filter(Boolean)
+          .join(' • ');
+
+        setScanBanner(`Fiş başarıyla okundu! ${info}`);
+      } else {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(
+          () => {}
+        );
+        Alert.alert(
+          'Fiş Okunamadı',
+          result.errorMessage ||
+            'Fiş üzerindeki metin okunamadı. Lütfen tutarı ve başlığı manuel giriniz.'
+        );
+      }
+    } catch (err: any) {
+      setIsScanning(false);
+      Alert.alert('Hata', err?.message || 'Görsel seçilirken bir hata oluştu.');
     }
   };
 
@@ -89,12 +215,6 @@ export default function AddExpenseScreen() {
     nav.goBack();
   };
 
-  const getCurrencySymbol = (curr: string) => {
-    if (curr === 'USD') return '$';
-    if (curr === 'EUR') return '€';
-    return '₺';
-  };
-
   const formattedDateStr = selectedDate.toLocaleDateString('tr-TR', {
     day: 'numeric',
     month: 'long',
@@ -118,6 +238,9 @@ export default function AddExpenseScreen() {
     amountFontSize = 38;
     currencyFontSize = 34;
   }
+
+  // Is current currency an extra/other currency
+  const isCustomCurrency = !['TRY', 'USD', 'EUR'].includes(currency);
 
   return (
     <View style={[styles.root, { backgroundColor: theme.bg }]}>
@@ -148,8 +271,67 @@ export default function AddExpenseScreen() {
             Harcama Ekle
           </Text>
 
-          <View style={{ width: 38 }} />
+          {/* 5- Fiş Tara Butonu */}
+          <BouncingButton
+            onPress={() => setScanModalVisible(true)}
+            style={[
+              styles.scanHeaderButton,
+              {
+                backgroundColor: isDark
+                  ? 'rgba(159, 232, 112, 0.16)'
+                  : 'rgba(22, 51, 0, 0.08)',
+                borderColor: isDark ? colors.wiseLime : colors.wiseForest,
+              },
+            ]}
+          >
+            <Ionicons
+              name="scan-outline"
+              size={16}
+              color={isDark ? colors.wiseLime : colors.wiseForest}
+            />
+            <Text
+              style={[
+                styles.scanHeaderText,
+                { color: isDark ? colors.wiseLime : colors.wiseForest },
+              ]}
+            >
+              Fiş Tara
+            </Text>
+          </BouncingButton>
         </View>
+
+        {/* Scan Success Banner */}
+        {scanBanner && (
+          <View
+            style={[
+              styles.bannerBox,
+              {
+                backgroundColor: isDark
+                  ? 'rgba(159, 232, 112, 0.15)'
+                  : 'rgba(22, 51, 0, 0.08)',
+                borderColor: isDark ? colors.wiseLime : colors.wiseForest,
+              },
+            ]}
+          >
+            <Ionicons
+              name="checkmark-circle"
+              size={18}
+              color={isDark ? colors.wiseLime : colors.wiseForest}
+            />
+            <Text
+              style={[
+                styles.bannerText,
+                { color: isDark ? colors.wiseLime : colors.wiseForest },
+              ]}
+              numberOfLines={2}
+            >
+              {scanBanner}
+            </Text>
+            <BouncingButton onPress={() => setScanBanner(null)}>
+              <Ionicons name="close" size={16} color={theme.textMuted} />
+            </BouncingButton>
+          </View>
+        )}
 
         {/* Scrollable Form Content */}
         <ScrollView
@@ -176,7 +358,7 @@ export default function AddExpenseScreen() {
               </Text>
               <TextInput
                 value={amount}
-                onChangeText={setAmount}
+                onChangeText={handleAmountChange}
                 placeholder="0"
                 placeholderTextColor={theme.textMuted + '66'}
                 keyboardType="decimal-pad"
@@ -192,7 +374,7 @@ export default function AddExpenseScreen() {
               />
             </View>
 
-            {/* Quick Presets */}
+            {/* 2- Quick Presets (without ₺ symbol) */}
             <View style={styles.quickPresetsRow}>
               {[50, 100, 250, 500].map((preset) => (
                 <BouncingButton
@@ -207,14 +389,14 @@ export default function AddExpenseScreen() {
                   ]}
                 >
                   <Text style={[styles.presetText, { color: theme.text }]}>
-                    +{preset} ₺
+                    +{preset}
                   </Text>
                 </BouncingButton>
               ))}
             </View>
           </View>
 
-          {/* Currency Selector */}
+          {/* 3- Currency Selector with "Diğer" */}
           <View style={styles.currencyRow}>
             {['TRY', 'USD', 'EUR'].map((curr) => {
               const active = currency === curr;
@@ -255,9 +437,47 @@ export default function AddExpenseScreen() {
                 </BouncingButton>
               );
             })}
+
+            {/* Diğer (Other Currency) Button */}
+            <BouncingButton
+              onPress={() => setCurrencyModalVisible(true)}
+              style={[
+                styles.currencyChip,
+                styles.otherCurrencyChip,
+                {
+                  backgroundColor: isCustomCurrency
+                    ? isDark
+                      ? colors.wiseLime
+                      : colors.wiseForest
+                    : theme.surface,
+                  borderColor: isCustomCurrency
+                    ? isDark
+                      ? colors.wiseLime
+                      : colors.wiseForest
+                    : theme.border,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.currencyText,
+                  {
+                    color: isCustomCurrency
+                      ? isDark
+                        ? colors.wiseForest
+                        : colors.wiseLime
+                      : theme.text,
+                  },
+                ]}
+              >
+                {isCustomCurrency
+                  ? `${currency} (${getCurrencySymbol(currency)})`
+                  : 'Diğer ▾'}
+              </Text>
+            </BouncingButton>
           </View>
 
-          {/* Category Selector Grid */}
+          {/* 4- Category Selector Grid (Includes "Diğer") */}
           <View style={styles.fieldSection}>
             <Text style={[styles.fieldLabel, { color: theme.text }]}>
               Kategori
@@ -301,9 +521,7 @@ export default function AddExpenseScreen() {
                       style={[
                         styles.categoryCardText,
                         {
-                          color: isSelected
-                            ? theme.text
-                            : theme.textMuted,
+                          color: isSelected ? theme.text : theme.textMuted,
                           fontWeight: isSelected ? '800' : '600',
                         },
                       ]}
@@ -397,7 +615,13 @@ export default function AddExpenseScreen() {
               >
                 {/* Date Picker Row */}
                 <View style={styles.dateRow}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 8,
+                    }}
+                  >
                     <Ionicons
                       name="calendar-outline"
                       size={18}
@@ -502,9 +726,7 @@ export default function AddExpenseScreen() {
               style={[
                 styles.saveButtonText,
                 {
-                  color: isDark
-                    ? colors.wiseForest
-                    : colors.wiseLime,
+                  color: isDark ? colors.wiseForest : colors.wiseLime,
                 },
               ]}
             >
@@ -513,6 +735,261 @@ export default function AddExpenseScreen() {
           </BouncingButton>
         </View>
       </ResponsiveContainer>
+
+      {/* Scanning Overlay Modal */}
+      {isScanning && (
+        <View style={styles.loadingOverlay}>
+          <View
+            style={[
+              styles.loadingBox,
+              { backgroundColor: theme.surface, borderColor: theme.border },
+            ]}
+          >
+            <ActivityIndicator
+              size="large"
+              color={isDark ? colors.wiseLime : colors.wiseForest}
+            />
+            <Text style={[styles.loadingTitle, { color: theme.text }]}>
+              Fiş Analiz Ediliyor
+            </Text>
+            <Text style={[styles.loadingSub, { color: theme.textMuted }]}>
+              Tutar, işletme ve tarih bilgileri ayıklanıyor...
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {/* Fiş Seçim Modalı (Kamera veya Galeri) */}
+      <Modal
+        visible={scanModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setScanModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View
+            style={[
+              styles.modalSheet,
+              { backgroundColor: theme.surface, borderColor: theme.border },
+            ]}
+          >
+            <View style={styles.modalHandle} />
+            <Text style={[styles.modalTitle, { color: theme.text }]}>
+              Fiş veya Fatura Tara
+            </Text>
+            <Text style={[styles.modalSub, { color: theme.textMuted }]}>
+              Fiş fotoğrafını yükleyerek harcama alanlarını otomatik doldurun.
+            </Text>
+
+            <View style={{ gap: 10, marginTop: 16 }}>
+              <BouncingButton
+                onPress={() => handleScanReceipt('camera')}
+                style={[
+                  styles.scanOptionButton,
+                  {
+                    backgroundColor: isDark
+                      ? colors.wiseLime
+                      : colors.wiseForest,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="camera"
+                  size={20}
+                  color={isDark ? colors.wiseForest : colors.wiseLime}
+                />
+                <Text
+                  style={[
+                    styles.scanOptionText,
+                    { color: isDark ? colors.wiseForest : colors.wiseLime },
+                  ]}
+                >
+                  Kamera ile Çek
+                </Text>
+              </BouncingButton>
+
+              <BouncingButton
+                onPress={() => handleScanReceipt('gallery')}
+                style={[
+                  styles.scanOptionButton,
+                  {
+                    backgroundColor: theme.field,
+                    borderColor: theme.border,
+                    borderWidth: 1,
+                  },
+                ]}
+              >
+                <Ionicons name="images-outline" size={20} color={theme.text} />
+                <Text style={[styles.scanOptionText, { color: theme.text }]}>
+                  Galeriden Seç
+                </Text>
+              </BouncingButton>
+
+              <BouncingButton
+                onPress={() => setScanModalVisible(false)}
+                style={styles.cancelButton}
+              >
+                <Text style={[styles.cancelText, { color: theme.textMuted }]}>
+                  Vazgeç
+                </Text>
+              </BouncingButton>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Diğer Kur Seçim Modalı */}
+      <Modal
+        visible={currencyModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setCurrencyModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View
+            style={[
+              styles.modalSheet,
+              {
+                backgroundColor: theme.surface,
+                borderColor: theme.border,
+                maxHeight: '80%',
+              },
+            ]}
+          >
+            <View style={styles.modalHandle} />
+            <View style={styles.modalHeaderRow}>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>
+                Para Birimi Seç
+              </Text>
+              <BouncingButton onPress={() => setCurrencyModalVisible(false)}>
+                <Ionicons name="close" size={22} color={theme.text} />
+              </BouncingButton>
+            </View>
+
+            <ScrollView
+              style={{ marginTop: 12 }}
+              showsVerticalScrollIndicator={false}
+            >
+              {AVAILABLE_CURRENCIES.map((item) => {
+                const isSelected = currency === item.code;
+                const liveRate = exp.rates[item.code] ?? item.fallbackRate;
+                return (
+                  <BouncingButton
+                    key={item.code}
+                    onPress={() => handleSelectCurrency(item.code)}
+                    style={[
+                      styles.currencyListItem,
+                      {
+                        backgroundColor: isSelected
+                          ? isDark
+                            ? 'rgba(159, 232, 112, 0.16)'
+                            : 'rgba(22, 51, 0, 0.08)'
+                          : theme.field,
+                        borderColor: isSelected
+                          ? isDark
+                            ? colors.wiseLime
+                            : colors.wiseForest
+                          : theme.border,
+                      },
+                    ]}
+                  >
+                    <View style={styles.currencyBadge}>
+                      <Text style={styles.currencyBadgeText}>{item.symbol}</Text>
+                    </View>
+                    <View style={{ flex: 1, marginLeft: 12 }}>
+                      <Text
+                        style={[
+                          styles.currencyCodeText,
+                          {
+                            color: theme.text,
+                            fontWeight: isSelected ? '800' : '600',
+                          },
+                        ]}
+                      >
+                        {item.code} — {item.name}
+                      </Text>
+                      {item.code !== 'TRY' && (
+                        <Text
+                          style={[
+                            styles.currencyRateSub,
+                            { color: theme.textMuted },
+                          ]}
+                        >
+                          1 {item.code} ≈ {liveRate.toFixed(2)} ₺
+                        </Text>
+                      )}
+                    </View>
+                    {isSelected && (
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={20}
+                        color={isDark ? colors.wiseLime : colors.wiseForest}
+                      />
+                    )}
+                  </BouncingButton>
+                );
+              })}
+
+              {/* Özel Kur Girişi */}
+              <View
+                style={[
+                  styles.customCurrencyCard,
+                  {
+                    backgroundColor: theme.field,
+                    borderColor: theme.border,
+                  },
+                ]}
+              >
+                <Text style={[styles.customCurrencyTitle, { color: theme.text }]}>
+                  Özel Kur Kodu Ekle
+                </Text>
+                <View style={styles.customInputRow}>
+                  <TextInput
+                    value={customCurrencyInput}
+                    onChangeText={setCustomCurrencyInput}
+                    placeholder="Örn: NOK, SEK, DKK"
+                    placeholderTextColor={theme.textMuted + '88'}
+                    autoCapitalize="characters"
+                    maxLength={5}
+                    style={[
+                      styles.customTextInput,
+                      {
+                        backgroundColor: theme.surface,
+                        borderColor: theme.border,
+                        color: theme.text,
+                      },
+                    ]}
+                  />
+                  <BouncingButton
+                    onPress={handleCustomCurrencySubmit}
+                    style={[
+                      styles.customAddButton,
+                      {
+                        backgroundColor: isDark
+                          ? colors.wiseLime
+                          : colors.wiseForest,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.customAddText,
+                        {
+                          color: isDark
+                            ? colors.wiseForest
+                            : colors.wiseLime,
+                        },
+                      ]}
+                    >
+                      Uygula
+                    </Text>
+                  </BouncingButton>
+                </View>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -540,6 +1017,36 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  scanHeaderButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 4,
+  },
+  scanHeaderText: {
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  bannerBox: {
+    marginHorizontal: 16,
+    marginTop: 6,
+    marginBottom: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  bannerText: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '700',
   },
   formScroll: {
     paddingHorizontal: 20,
@@ -586,14 +1093,19 @@ const styles = StyleSheet.create({
   currencyRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 10,
+    flexWrap: 'wrap',
+    gap: 8,
     marginVertical: 14,
   },
   currencyChip: {
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 14,
     borderWidth: 1,
+  },
+  otherCurrencyChip: {
+    minWidth: 70,
+    alignItems: 'center',
   },
   currencyText: {
     fontSize: 13,
@@ -716,5 +1228,148 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '900',
     letterSpacing: -0.2,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    borderWidth: 1,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 36,
+  },
+  modalHandle: {
+    width: 36,
+    height: 4,
+    backgroundColor: 'rgba(150,150,150,0.4)',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 14,
+  },
+  modalHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  modalSub: {
+    fontSize: 13,
+    marginTop: 4,
+  },
+  scanOptionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 15,
+    borderRadius: 16,
+    gap: 8,
+  },
+  scanOptionText: {
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  cancelButton: {
+    alignItems: 'center',
+    paddingVertical: 12,
+    marginTop: 4,
+  },
+  cancelText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  currencyListItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 8,
+  },
+  currencyBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 11,
+    backgroundColor: 'rgba(150,150,150,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  currencyBadgeText: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  currencyCodeText: {
+    fontSize: 14,
+  },
+  currencyRateSub: {
+    fontSize: 11,
+    marginTop: 2,
+    fontWeight: '500',
+  },
+  customCurrencyCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 14,
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  customCurrencyTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  customInputRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  customTextInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  customAddButton: {
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  customAddText: {
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 999,
+  },
+  loadingBox: {
+    padding: 24,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: 'center',
+    width: 240,
+  },
+  loadingTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    marginTop: 12,
+  },
+  loadingSub: {
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 6,
   },
 });

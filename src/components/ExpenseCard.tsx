@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { getMeta } from '../utils/categoryUtils';
+import { getCurrencySymbol } from '../services/currencyService';
 import { Expense } from '../models/Expense';
 import BouncingButton from './BouncingButton';
 
@@ -10,6 +11,7 @@ interface ExpenseCardProps {
   expense: Expense;
   usdRate: number;
   eurRate: number;
+  rates?: Record<string, number>;
   onPress?: () => void;
   onDelete?: () => void;
 }
@@ -18,6 +20,7 @@ export default function ExpenseCard({
   expense,
   usdRate,
   eurRate,
+  rates,
   onPress,
   onDelete,
 }: ExpenseCardProps) {
@@ -25,35 +28,28 @@ export default function ExpenseCard({
   const meta = getMeta(expense.category);
 
   // Currency symbols and formatting
-  let currencySymbol = '₺';
-  let formattedOriginal = `${expense.amount.toLocaleString('tr-TR', {
+  const symbol = getCurrencySymbol(expense.currency);
+  const formattedAmount = expense.amount.toLocaleString('tr-TR', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  })} ₺`;
+  });
 
-  if (expense.currency === 'USD') {
-    currencySymbol = '$';
-    formattedOriginal = `-$${expense.amount.toLocaleString('tr-TR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`;
-  } else if (expense.currency === 'EUR') {
-    currencySymbol = '€';
-    formattedOriginal = `-€${expense.amount.toLocaleString('tr-TR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`;
-  } else {
-    formattedOriginal = `-${expense.amount.toLocaleString('tr-TR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })} ₺`;
-  }
+  const formattedOriginal =
+    expense.currency === 'TRY'
+      ? `-${formattedAmount} ₺`
+      : `-${symbol}${formattedAmount}`;
 
   // TRY equivalent
   let tryAmount = expense.amount;
-  if (expense.currency === 'USD') tryAmount = expense.amount * usdRate;
-  if (expense.currency === 'EUR') tryAmount = expense.amount * eurRate;
+  if (expense.currency === 'TRY') {
+    tryAmount = expense.amount;
+  } else if (rates && rates[expense.currency]) {
+    tryAmount = expense.amount * rates[expense.currency];
+  } else if (expense.currency === 'USD') {
+    tryAmount = expense.amount * usdRate;
+  } else if (expense.currency === 'EUR') {
+    tryAmount = expense.amount * eurRate;
+  }
   const formattedTRY = `≈ ${tryAmount.toLocaleString('tr-TR', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,

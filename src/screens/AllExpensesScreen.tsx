@@ -386,6 +386,7 @@ export default function AllExpensesScreen() {
                     expense={e}
                     usdRate={exp.usdRate}
                     eurRate={exp.eurRate}
+                    rates={exp.rates}
                     onDelete={() => handleDelete(e.id, e.name)}
                   />
                 ))}

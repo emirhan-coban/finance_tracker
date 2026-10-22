@@ -9,6 +9,7 @@ interface ExpenseContextValue {
   budgets: CategoryBudget[];
   usdRate: number;
   eurRate: number;
+  rates: Record<string, number>;
   isLoadingRates: boolean;
   addExpense: (e: Expense) => Promise<void>;
   deleteExpense: (id: string) => Promise<void>;
@@ -24,8 +25,15 @@ const ExpenseContext = createContext<ExpenseContextValue | null>(null);
 export function ExpenseProvider({ children }: { children: React.ReactNode }) {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [budgets, setBudgets] = useState<CategoryBudget[]>(budgetDefaults());
-  const [usdRate, setUsdRate] = useState(43.6);
-  const [eurRate, setEurRate] = useState(46.5);
+  const [rates, setRates] = useState<Record<string, number>>({
+    TRY: 1,
+    USD: 49.7,
+    EUR: 55.8,
+    GBP: 66.7,
+    CHF: 60.5,
+  });
+  const [usdRate, setUsdRate] = useState(49.7);
+  const [eurRate, setEurRate] = useState(55.8);
   const [isLoadingRates, setIsLoadingRates] = useState(true);
 
   const loadExpenses = useCallback(async () => {
@@ -41,8 +49,9 @@ export function ExpenseProvider({ children }: { children: React.ReactNode }) {
   const fetchR = useCallback(async () => {
     try {
       const r = await fetchRates();
-      setUsdRate(r.USD || 43.6);
-      setEurRate(r.EUR || 46.5);
+      setRates(r);
+      setUsdRate(r.USD || 49.7);
+      setEurRate(r.EUR || 55.8);
     } catch {
       // Fallback rates already set
     }
@@ -86,11 +95,12 @@ export function ExpenseProvider({ children }: { children: React.ReactNode }) {
   const convertToTRY = useCallback(
     (amount: number, currency: string) => {
       if (currency === 'TRY') return amount;
-      if (currency === 'USD') return amount * usdRate;
-      if (currency === 'EUR') return amount * eurRate;
-      return amount;
+      const rate =
+        rates[currency] ??
+        (currency === 'USD' ? usdRate : currency === 'EUR' ? eurRate : 1);
+      return amount * rate;
     },
-    [usdRate, eurRate]
+    [rates, usdRate, eurRate]
   );
 
   const getTotalInTRY = useCallback(() => {
@@ -113,6 +123,7 @@ export function ExpenseProvider({ children }: { children: React.ReactNode }) {
         budgets,
         usdRate,
         eurRate,
+        rates,
         isLoadingRates,
         addExpense,
         deleteExpense,
