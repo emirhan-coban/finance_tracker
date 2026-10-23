@@ -8,6 +8,7 @@ import { ExpenseProvider } from './src/context/ExpenseContext';
 import DashboardScreen from './src/screens/DashboardScreen';
 import AllExpensesScreen from './src/screens/AllExpensesScreen';
 import AddExpenseScreen from './src/screens/AddExpenseScreen';
+import SubscriptionsScreen from './src/screens/SubscriptionsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -44,6 +45,7 @@ function NavigationRoot() {
         >
           <Stack.Screen name="Dashboard" component={DashboardScreen} />
           <Stack.Screen name="AllExpenses" component={AllExpensesScreen} />
+          <Stack.Screen name="Subscriptions" component={SubscriptionsScreen} />
           <Stack.Screen
             name="AddExpense"
             component={AddExpenseScreen}

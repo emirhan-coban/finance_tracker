@@ -294,6 +294,81 @@ export default function DashboardScreen() {
             </ScrollView>
           </View>
 
+          {/* Subscription Radar Banner */}
+          <BouncingButton
+            onPress={() => nav.navigate('Subscriptions')}
+            style={[
+              styles.radarCard,
+              {
+                backgroundColor: theme.surface,
+                borderColor: theme.border,
+              },
+            ]}
+          >
+            <View
+              style={[
+                styles.radarIconBox,
+                {
+                  backgroundColor: isDark
+                    ? 'rgba(159, 232, 112, 0.16)'
+                    : 'rgba(22, 51, 0, 0.08)',
+                },
+              ]}
+            >
+              <Ionicons
+                name="sync-circle"
+                size={26}
+                color={isDark ? colors.wiseLime : colors.wiseForest}
+              />
+            </View>
+
+            <View style={{ flex: 1, minWidth: 0, marginHorizontal: 12 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={[styles.radarCardTitle, { color: theme.text }]}>
+                  Abonelik Radarı
+                </Text>
+                {exp.subscriptions.some((s) => s.isActive) && (
+                  <View
+                    style={[
+                      styles.radarLivePill,
+                      {
+                        backgroundColor: isDark
+                          ? 'rgba(159, 232, 112, 0.16)'
+                          : 'rgba(22, 51, 0, 0.08)',
+                      },
+                    ]}
+                  >
+                    <View style={styles.radarLiveDot} />
+                    <Text
+                      style={[
+                        styles.radarLiveText,
+                        { color: isDark ? colors.wiseLime : colors.wiseForest },
+                      ]}
+                    >
+                      {exp.subscriptions.filter((s) => s.isActive).length} Aktif
+                    </Text>
+                  </View>
+                )}
+              </View>
+              <Text
+                style={[styles.radarCardSub, { color: theme.textMuted }]}
+                numberOfLines={1}
+              >
+                {exp.subscriptions.filter((s) => s.isActive).length > 0
+                  ? `Aylık yük: ${exp
+                      .getMonthlySubscriptionTotalTRY()
+                      .toLocaleString('tr-TR', { maximumFractionDigits: 0 })} ₺ • Yaklaşanları gör`
+                  : 'Düzenli aboneliklerinizi takip edin ve tasarruf edin'}
+              </Text>
+            </View>
+
+            <Ionicons
+              name="chevron-forward"
+              size={18}
+              color={theme.textMuted}
+            />
+          </BouncingButton>
+
           {/* Recent Transactions */}
           <View style={styles.sectionContainer}>
             <View style={styles.sectionHeader}>
@@ -930,6 +1005,50 @@ const styles = StyleSheet.create({
   },
   dialogSaveText: {
     fontSize: 15,
+    fontWeight: '800',
+  },
+  radarCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginTop: 18,
+  },
+  radarIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radarCardTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: -0.2,
+  },
+  radarCardSub: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  radarLivePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  radarLiveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#9FE870',
+  },
+  radarLiveText: {
+    fontSize: 10,
     fontWeight: '800',
   },
 });
