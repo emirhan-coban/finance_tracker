@@ -7,6 +7,7 @@ import {
   TextInput,
   Modal,
   Alert,
+  Pressable,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -90,6 +91,7 @@ export default function SubscriptionsScreen() {
   }, [exp.subscriptions]);
 
   const openAddModal = (template?: SubscriptionTemplate) => {
+    setCurrencyModalVisible(false);
     if (template) {
       setName(template.name);
       setAmount(template.defaultAmount.toString());
@@ -113,6 +115,7 @@ export default function SubscriptionsScreen() {
   };
 
   const openEditModal = (sub: Subscription) => {
+    setCurrencyModalVisible(false);
     setEditingSub(sub);
     setName(sub.name);
     setAmount(sub.amount.toString());
@@ -626,7 +629,13 @@ export default function SubscriptionsScreen() {
         visible={modalVisible}
         transparent
         animationType="slide"
-        onRequestClose={() => setModalVisible(false)}
+        onRequestClose={() => {
+          if (currencyModalVisible) {
+            setCurrencyModalVisible(false);
+          } else {
+            setModalVisible(false);
+          }
+        }}
       >
         <View style={styles.modalOverlay}>
           <View
@@ -891,159 +900,169 @@ export default function SubscriptionsScreen() {
               </BouncingButton>
             </ScrollView>
           </View>
-        </View>
-      </Modal>
 
-      {/* Diğer Kur Seçim Modalı */}
-      <Modal
-        visible={currencyModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setCurrencyModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View
-            style={[
-              styles.modalSheet,
-              {
-                backgroundColor: theme.surface,
-                borderColor: theme.border,
-                maxHeight: '80%',
-              },
-            ]}
-          >
-            <View style={styles.modalHandle} />
-            <View style={styles.modalHeaderRow}>
-              <Text style={[styles.modalTitle, { color: theme.text }]}>
-                Abonelik Para Birimi Seç
-              </Text>
-              <BouncingButton onPress={() => setCurrencyModalVisible(false)}>
-                <Ionicons name="close" size={22} color={theme.text} />
-              </BouncingButton>
-            </View>
-
-            <ScrollView
-              style={{ marginTop: 12 }}
-              showsVerticalScrollIndicator={false}
+          {/* Diğer Kur Seçim Katmanı (Modal İçi Overlay - iOS Nested Modal çakışmasını çözer) */}
+          {currencyModalVisible && (
+            <View
+              style={[
+                StyleSheet.absoluteFill,
+                {
+                  backgroundColor: 'rgba(0,0,0,0.6)',
+                  justifyContent: 'flex-end',
+                  zIndex: 999,
+                },
+              ]}
             >
-              {AVAILABLE_CURRENCIES.map((item) => {
-                const isSelected = currency === item.code;
-                const liveRate = exp.rates[item.code] ?? item.fallbackRate;
-                return (
-                  <BouncingButton
-                    key={item.code}
-                    onPress={() => handleSelectCurrency(item.code)}
-                    style={[
-                      styles.currencyListItem,
-                      {
-                        backgroundColor: isSelected
-                          ? isDark
-                            ? 'rgba(159, 232, 112, 0.16)'
-                            : 'rgba(22, 51, 0, 0.08)'
-                          : theme.field,
-                        borderColor: isSelected
-                          ? isDark
-                            ? colors.wiseLime
-                            : colors.wiseForest
-                          : theme.border,
-                      },
-                    ]}
-                  >
-                    <View style={styles.currencyBadge}>
-                      <Text style={styles.currencyBadgeText}>{item.symbol}</Text>
-                    </View>
-                    <View style={{ flex: 1, marginLeft: 12 }}>
-                      <Text
-                        style={[
-                          styles.currencyCodeText,
-                          {
-                            color: theme.text,
-                            fontWeight: isSelected ? '800' : '600',
-                          },
-                        ]}
-                      >
-                        {item.code} — {item.name}
-                      </Text>
-                      {item.code !== 'TRY' && (
-                        <Text
-                          style={[
-                            styles.currencyRateSub,
-                            { color: theme.textMuted },
-                          ]}
-                        >
-                          1 {item.code} ≈ {liveRate.toFixed(2)} ₺
-                        </Text>
-                      )}
-                    </View>
-                    {isSelected && (
-                      <Ionicons
-                        name="checkmark-circle"
-                        size={20}
-                        color={isDark ? colors.wiseLime : colors.wiseForest}
-                      />
-                    )}
-                  </BouncingButton>
-                );
-              })}
-
-              {/* Özel Kur Girişi */}
+              <Pressable
+                style={StyleSheet.absoluteFill}
+                onPress={() => setCurrencyModalVisible(false)}
+              />
               <View
                 style={[
-                  styles.customCurrencyCard,
+                  styles.modalSheet,
                   {
-                    backgroundColor: theme.field,
+                    backgroundColor: theme.surface,
                     borderColor: theme.border,
+                    maxHeight: '80%',
+                    zIndex: 1000,
                   },
                 ]}
               >
-                <Text style={[styles.customCurrencyTitle, { color: theme.text }]}>
-                  Özel Kur Kodu Ekle
-                </Text>
-                <View style={styles.customInputRow}>
-                  <TextInput
-                    value={customCurrencyInput}
-                    onChangeText={setCustomCurrencyInput}
-                    placeholder="Örn: NOK, SEK, DKK"
-                    placeholderTextColor={theme.textMuted + '88'}
-                    autoCapitalize="characters"
-                    maxLength={5}
+                <View style={styles.modalHandle} />
+                <View style={styles.modalHeaderRow}>
+                  <Text style={[styles.modalTitle, { color: theme.text }]}>
+                    Abonelik Para Birimi Seç
+                  </Text>
+                  <BouncingButton onPress={() => setCurrencyModalVisible(false)}>
+                    <Ionicons name="close" size={22} color={theme.text} />
+                  </BouncingButton>
+                </View>
+
+                <ScrollView
+                  style={{ marginTop: 12 }}
+                  showsVerticalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
+                >
+                  {AVAILABLE_CURRENCIES.map((item) => {
+                    const isSelected = currency === item.code;
+                    const liveRate = exp.rates[item.code] ?? item.fallbackRate;
+                    return (
+                      <BouncingButton
+                        key={item.code}
+                        onPress={() => handleSelectCurrency(item.code)}
+                        style={[
+                          styles.currencyListItem,
+                          {
+                            backgroundColor: isSelected
+                              ? isDark
+                                ? 'rgba(159, 232, 112, 0.16)'
+                                : 'rgba(22, 51, 0, 0.08)'
+                              : theme.field,
+                            borderColor: isSelected
+                              ? isDark
+                                ? colors.wiseLime
+                                : colors.wiseForest
+                              : theme.border,
+                          },
+                        ]}
+                      >
+                        <View style={styles.currencyBadge}>
+                          <Text style={styles.currencyBadgeText}>{item.symbol}</Text>
+                        </View>
+                        <View style={{ flex: 1, marginLeft: 12 }}>
+                          <Text
+                            style={[
+                              styles.currencyCodeText,
+                              {
+                                color: theme.text,
+                                fontWeight: isSelected ? '800' : '600',
+                              },
+                            ]}
+                          >
+                            {item.code} — {item.name}
+                          </Text>
+                          {item.code !== 'TRY' && (
+                            <Text
+                              style={[
+                                styles.currencyRateSub,
+                                { color: theme.textMuted },
+                              ]}
+                            >
+                              1 {item.code} ≈ {liveRate.toFixed(2)} ₺
+                            </Text>
+                          )}
+                        </View>
+                        {isSelected && (
+                          <Ionicons
+                            name="checkmark-circle"
+                            size={20}
+                            color={isDark ? colors.wiseLime : colors.wiseForest}
+                          />
+                        )}
+                      </BouncingButton>
+                    );
+                  })}
+
+                  {/* Özel Kur Girişi */}
+                  <View
                     style={[
-                      styles.customTextInput,
+                      styles.customCurrencyCard,
                       {
-                        backgroundColor: theme.surface,
+                        backgroundColor: theme.field,
                         borderColor: theme.border,
-                        color: theme.text,
-                      },
-                    ]}
-                  />
-                  <BouncingButton
-                    onPress={handleCustomCurrencySubmit}
-                    style={[
-                      styles.customAddButton,
-                      {
-                        backgroundColor: isDark
-                          ? colors.wiseLime
-                          : colors.wiseForest,
                       },
                     ]}
                   >
-                    <Text
-                      style={[
-                        styles.customAddText,
-                        {
-                          color: isDark
-                            ? colors.wiseForest
-                            : colors.wiseLime,
-                        },
-                      ]}
-                    >
-                      Uygula
+                    <Text style={[styles.customCurrencyTitle, { color: theme.text }]}>
+                      Özel Kur Kodu Ekle
                     </Text>
-                  </BouncingButton>
-                </View>
+                    <View style={styles.customInputRow}>
+                      <TextInput
+                        value={customCurrencyInput}
+                        onChangeText={setCustomCurrencyInput}
+                        placeholder="Örn: NOK, SEK, DKK"
+                        placeholderTextColor={theme.textMuted + '88'}
+                        autoCapitalize="characters"
+                        maxLength={5}
+                        style={[
+                          styles.customTextInput,
+                          {
+                            backgroundColor: theme.surface,
+                            borderColor: theme.border,
+                            color: theme.text,
+                          },
+                        ]}
+                      />
+                      <BouncingButton
+                        onPress={handleCustomCurrencySubmit}
+                        style={[
+                          styles.customAddButton,
+                          {
+                            backgroundColor: isDark
+                              ? colors.wiseLime
+                              : colors.wiseForest,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.customAddText,
+                            {
+                              color: isDark
+                                ? colors.wiseForest
+                                : colors.wiseLime,
+                            },
+                          ]}
+                        >
+                          Uygula
+                        </Text>
+                      </BouncingButton>
+                    </View>
+                  </View>
+                </ScrollView>
               </View>
-            </ScrollView>
-          </View>
+            </View>
+          )}
         </View>
       </Modal>
     </View>
