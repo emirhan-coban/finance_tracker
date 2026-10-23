@@ -1,4 +1,4 @@
-# Finance Tracker 💰
+# Numia 💰 (Kişisel Finans & Bütçe Takibi)
 
 Modern, responsive ve minimal kişisel finans takip uygulaması. React Native & Expo kullanılarak Wise ve Cash App estetiğinden (Forest & Lime yeşili, modern grafit yüzeyler) esinlenilerek geliştirilmiştir.
 

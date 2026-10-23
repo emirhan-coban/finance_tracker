@@ -12,7 +12,8 @@
       "buildNumber": "1",
       "infoPlist": {
         "NSCameraUsageDescription": "Fiş ve faturalarınızı tarayabilmek için kamera izni gereklidir.",
-        "NSPhotoLibraryUsageDescription": "Fiş ve fatura fotoğraflarınızı yükleyebilmek için galeri izni gereklidir."
+        "NSPhotoLibraryUsageDescription": "Fiş ve fatura fotoğraflarınızı yükleyebilmek için galeri izni gereklidir.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
