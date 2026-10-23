@@ -15,6 +15,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useExpenses } from '../context/ExpenseContext';
 import { getMeta, categories } from '../utils/categoryUtils';
 import { formatCompactTRY } from '../utils/formatUtils';
+import { getDaysUntilRenewal, formatRenewalBadge } from '../models/Subscription';
 import ExpenseCard from '../components/ExpenseCard';
 import CategoryBudgetCompactCard from '../components/CategoryBudgetCard';
 import BouncingButton from '../components/BouncingButton';
@@ -45,6 +46,15 @@ export default function DashboardScreen() {
   const foodSpent = exp.getSpentByCategory('Food & Drinks');
   const transportSpent = exp.getSpentByCategory('Transportation');
   const shoppingSpent = exp.getSpentByCategory('Shopping');
+  const monthlySubTotal = exp.getMonthlySubscriptionTotalTRY();
+  const activeSubs = exp.subscriptions.filter((s) => s.isActive);
+  const nextRenewalSub = React.useMemo(() => {
+    if (activeSubs.length === 0) return null;
+    return [...activeSubs].sort(
+      (a, b) =>
+        getDaysUntilRenewal(a.renewalDay) - getDaysUntilRenewal(b.renewalDay)
+    )[0];
+  }, [activeSubs]);
 
   const openEditLimit = (catId: string) => {
     const existing = exp.budgets.find((b) => b.category === catId);
@@ -219,12 +229,13 @@ export default function DashboardScreen() {
               </Text>
             )}
 
-            {/* 3 Mini Stat Pills */}
+            {/* 4 Mini Stat Pills (Includes Abonelik) */}
             <View style={styles.miniStatsRow}>
               {[
                 { label: 'Yiyecek', amount: foodSpent, color: '#F59E0B' },
                 { label: 'Ulaşım', amount: transportSpent, color: '#38BDF8' },
                 { label: 'Alışveriş', amount: shoppingSpent, color: '#FB7185' },
+                { label: 'Abonelik', amount: monthlySubTotal, color: '#A78BFA' },
               ].map((item) => (
                 <View key={item.label} style={styles.statPill}>
                   <View style={styles.statDotRow}>
@@ -327,7 +338,7 @@ export default function DashboardScreen() {
                 <Text style={[styles.radarCardTitle, { color: theme.text }]}>
                   Abonelik Radarı
                 </Text>
-                {exp.subscriptions.some((s) => s.isActive) && (
+                {activeSubs.length > 0 && (
                   <View
                     style={[
                       styles.radarLivePill,
@@ -345,7 +356,7 @@ export default function DashboardScreen() {
                         { color: isDark ? colors.wiseLime : colors.wiseForest },
                       ]}
                     >
-                      {exp.subscriptions.filter((s) => s.isActive).length} Aktif
+                      {activeSubs.length} Aktif
                     </Text>
                   </View>
                 )}
@@ -354,19 +365,43 @@ export default function DashboardScreen() {
                 style={[styles.radarCardSub, { color: theme.textMuted }]}
                 numberOfLines={1}
               >
-                {exp.subscriptions.filter((s) => s.isActive).length > 0
-                  ? `Aylık yük: ${exp
-                      .getMonthlySubscriptionTotalTRY()
-                      .toLocaleString('tr-TR', { maximumFractionDigits: 0 })} ₺ • Yaklaşanları gör`
+                {nextRenewalSub
+                  ? `Sıradaki: ${nextRenewalSub.name} • ${
+                      formatRenewalBadge(
+                        getDaysUntilRenewal(nextRenewalSub.renewalDay)
+                      ).text
+                    }`
+                  : activeSubs.length > 0
+                  ? 'Tüm yenilenmeleri ve yıllık maliyeti gör'
                   : 'Düzenli aboneliklerinizi takip edin ve tasarruf edin'}
               </Text>
             </View>
 
-            <Ionicons
-              name="chevron-forward"
-              size={18}
-              color={theme.textMuted}
-            />
+            {activeSubs.length > 0 ? (
+              <View style={{ alignItems: 'flex-end', flexShrink: 0 }}>
+                <Text
+                  style={[
+                    styles.radarAmountText,
+                    { color: isDark ? colors.wiseLime : colors.wiseForest },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {monthlySubTotal.toLocaleString('tr-TR', {
+                    maximumFractionDigits: 0,
+                  })}{' '}
+                  ₺
+                </Text>
+                <Text style={[styles.radarCycleText, { color: theme.textMuted }]}>
+                  / ay
+                </Text>
+              </View>
+            ) : (
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color={theme.textMuted}
+              />
+            )}
           </BouncingButton>
 
           {/* Recent Transactions */}
@@ -1050,5 +1085,15 @@ const styles = StyleSheet.create({
   radarLiveText: {
     fontSize: 10,
     fontWeight: '800',
+  },
+  radarAmountText: {
+    fontSize: 15,
+    fontWeight: '900',
+    letterSpacing: -0.2,
+  },
+  radarCycleText: {
+    fontSize: 10,
+    fontWeight: '600',
+    marginTop: 1,
   },
 });
