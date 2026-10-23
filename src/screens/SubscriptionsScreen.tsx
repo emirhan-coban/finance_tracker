@@ -22,7 +22,10 @@ import {
   formatRenewalBadge,
   BillingCycle,
 } from '../models/Subscription';
-import { getCurrencySymbol } from '../services/currencyService';
+import {
+  getCurrencySymbol,
+  AVAILABLE_CURRENCIES,
+} from '../services/currencyService';
 import { formatCompactTRY } from '../utils/formatUtils';
 import BouncingButton from '../components/BouncingButton';
 import ResponsiveContainer from '../components/ResponsiveContainer';
@@ -45,6 +48,33 @@ export default function SubscriptionsScreen() {
   const [category, setCategory] = useState('Eğlence');
   const [color, setColor] = useState('#E50914');
   const [icon, setIcon] = useState('film-outline');
+
+  // Currency Modal State
+  const [currencyModalVisible, setCurrencyModalVisible] = useState(false);
+  const [customCurrencyInput, setCustomCurrencyInput] = useState('');
+
+  const handleSelectCurrency = (code: string) => {
+    setCurrency(code);
+    setCurrencyModalVisible(false);
+    Haptics.selectionAsync().catch(() => {});
+  };
+
+  const handleCustomCurrencySubmit = () => {
+    const code = customCurrencyInput.trim().toUpperCase();
+    if (code.length >= 2 && code.length <= 5) {
+      setCurrency(code);
+      setCustomCurrencyInput('');
+      setCurrencyModalVisible(false);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(
+        () => {}
+      );
+    } else {
+      Alert.alert(
+        'Geçersiz Kur',
+        'Lütfen geçerli bir para birimi kodu girin (örn: USD, EUR, GBP, JPY).'
+      );
+    }
+  };
 
   const monthlyTotalTRY = exp.getMonthlySubscriptionTotalTRY();
   const yearlyTotalTRY = exp.getYearlySubscriptionTotalTRY();
@@ -667,50 +697,87 @@ export default function SubscriptionsScreen() {
                   />
                 </View>
 
-                <View style={{ width: 110 }}>
+                <View style={{ width: 140 }}>
                   <Text style={[styles.inputLabel, { color: theme.text }]}>
                     Para Birimi
                   </Text>
                   <View style={styles.currencyToggleRow}>
-                    {['TRY', 'USD', 'EUR'].map((curr) => {
-                      const isSel = currency === curr;
-                      return (
-                        <BouncingButton
-                          key={curr}
-                          onPress={() => setCurrency(curr)}
-                          style={[
-                            styles.currMiniChip,
-                            {
-                              backgroundColor: isSel
+                    <BouncingButton
+                      onPress={() => setCurrency('TRY')}
+                      style={[
+                        styles.currMiniChip,
+                        {
+                          backgroundColor:
+                            currency === 'TRY'
+                              ? isDark
+                                ? colors.wiseLime
+                                : colors.wiseForest
+                              : theme.field,
+                          borderColor:
+                            currency === 'TRY'
+                              ? isDark
+                                ? colors.wiseLime
+                                : colors.wiseForest
+                              : theme.border,
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.currMiniText,
+                          {
+                            color:
+                              currency === 'TRY'
                                 ? isDark
-                                  ? colors.wiseLime
-                                  : colors.wiseForest
-                                : theme.field,
-                              borderColor: isSel
+                                  ? colors.wiseForest
+                                  : colors.wiseLime
+                                : theme.text,
+                          },
+                        ]}
+                      >
+                        TRY (₺)
+                      </Text>
+                    </BouncingButton>
+
+                    <BouncingButton
+                      onPress={() => setCurrencyModalVisible(true)}
+                      style={[
+                        styles.currMiniChip,
+                        {
+                          backgroundColor:
+                            currency !== 'TRY'
+                              ? isDark
+                                ? colors.wiseLime
+                                : colors.wiseForest
+                              : theme.field,
+                          borderColor:
+                            currency !== 'TRY'
+                              ? isDark
+                                ? colors.wiseLime
+                                : colors.wiseForest
+                              : theme.border,
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.currMiniText,
+                          {
+                            color:
+                              currency !== 'TRY'
                                 ? isDark
-                                  ? colors.wiseLime
-                                  : colors.wiseForest
-                                : theme.border,
-                            },
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.currMiniText,
-                              {
-                                color: isSel
-                                  ? isDark
-                                    ? colors.wiseForest
-                                    : colors.wiseLime
-                                  : theme.text,
-                              },
-                            ]}
-                          >
-                            {curr}
-                          </Text>
-                        </BouncingButton>
-                      );
-                    })}
+                                  ? colors.wiseForest
+                                  : colors.wiseLime
+                                : theme.text,
+                          },
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {currency !== 'TRY'
+                          ? `${currency} (${getCurrencySymbol(currency)}) ▾`
+                          : 'Diğer ▾'}
+                      </Text>
+                    </BouncingButton>
                   </View>
                 </View>
               </View>
@@ -822,6 +889,159 @@ export default function SubscriptionsScreen() {
                   {editingSub ? 'Güncelle' : 'Aboneliği Kaydet'}
                 </Text>
               </BouncingButton>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Diğer Kur Seçim Modalı */}
+      <Modal
+        visible={currencyModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setCurrencyModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View
+            style={[
+              styles.modalSheet,
+              {
+                backgroundColor: theme.surface,
+                borderColor: theme.border,
+                maxHeight: '80%',
+              },
+            ]}
+          >
+            <View style={styles.modalHandle} />
+            <View style={styles.modalHeaderRow}>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>
+                Abonelik Para Birimi Seç
+              </Text>
+              <BouncingButton onPress={() => setCurrencyModalVisible(false)}>
+                <Ionicons name="close" size={22} color={theme.text} />
+              </BouncingButton>
+            </View>
+
+            <ScrollView
+              style={{ marginTop: 12 }}
+              showsVerticalScrollIndicator={false}
+            >
+              {AVAILABLE_CURRENCIES.map((item) => {
+                const isSelected = currency === item.code;
+                const liveRate = exp.rates[item.code] ?? item.fallbackRate;
+                return (
+                  <BouncingButton
+                    key={item.code}
+                    onPress={() => handleSelectCurrency(item.code)}
+                    style={[
+                      styles.currencyListItem,
+                      {
+                        backgroundColor: isSelected
+                          ? isDark
+                            ? 'rgba(159, 232, 112, 0.16)'
+                            : 'rgba(22, 51, 0, 0.08)'
+                          : theme.field,
+                        borderColor: isSelected
+                          ? isDark
+                            ? colors.wiseLime
+                            : colors.wiseForest
+                          : theme.border,
+                      },
+                    ]}
+                  >
+                    <View style={styles.currencyBadge}>
+                      <Text style={styles.currencyBadgeText}>{item.symbol}</Text>
+                    </View>
+                    <View style={{ flex: 1, marginLeft: 12 }}>
+                      <Text
+                        style={[
+                          styles.currencyCodeText,
+                          {
+                            color: theme.text,
+                            fontWeight: isSelected ? '800' : '600',
+                          },
+                        ]}
+                      >
+                        {item.code} — {item.name}
+                      </Text>
+                      {item.code !== 'TRY' && (
+                        <Text
+                          style={[
+                            styles.currencyRateSub,
+                            { color: theme.textMuted },
+                          ]}
+                        >
+                          1 {item.code} ≈ {liveRate.toFixed(2)} ₺
+                        </Text>
+                      )}
+                    </View>
+                    {isSelected && (
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={20}
+                        color={isDark ? colors.wiseLime : colors.wiseForest}
+                      />
+                    )}
+                  </BouncingButton>
+                );
+              })}
+
+              {/* Özel Kur Girişi */}
+              <View
+                style={[
+                  styles.customCurrencyCard,
+                  {
+                    backgroundColor: theme.field,
+                    borderColor: theme.border,
+                  },
+                ]}
+              >
+                <Text style={[styles.customCurrencyTitle, { color: theme.text }]}>
+                  Özel Kur Kodu Ekle
+                </Text>
+                <View style={styles.customInputRow}>
+                  <TextInput
+                    value={customCurrencyInput}
+                    onChangeText={setCustomCurrencyInput}
+                    placeholder="Örn: NOK, SEK, DKK"
+                    placeholderTextColor={theme.textMuted + '88'}
+                    autoCapitalize="characters"
+                    maxLength={5}
+                    style={[
+                      styles.customTextInput,
+                      {
+                        backgroundColor: theme.surface,
+                        borderColor: theme.border,
+                        color: theme.text,
+                      },
+                    ]}
+                  />
+                  <BouncingButton
+                    onPress={handleCustomCurrencySubmit}
+                    style={[
+                      styles.customAddButton,
+                      {
+                        backgroundColor: isDark
+                          ? colors.wiseLime
+                          : colors.wiseForest,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.customAddText,
+                        {
+                          color: isDark
+                            ? colors.wiseForest
+                            : colors.wiseLime,
+                        },
+                      ]}
+                    >
+                      Uygula
+                    </Text>
+                  </BouncingButton>
+                </View>
+              </View>
             </ScrollView>
           </View>
         </View>
@@ -1159,5 +1379,69 @@ const styles = StyleSheet.create({
   saveModalButtonText: {
     fontSize: 16,
     fontWeight: '900',
+  },
+  currencyListItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 8,
+  },
+  currencyBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 11,
+    backgroundColor: 'rgba(150,150,150,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  currencyBadgeText: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  currencyCodeText: {
+    fontSize: 14,
+  },
+  currencyRateSub: {
+    fontSize: 11,
+    marginTop: 2,
+    fontWeight: '500',
+  },
+  customCurrencyCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 14,
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  customCurrencyTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  customInputRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  customTextInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  customAddButton: {
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  customAddText: {
+    fontSize: 13,
+    fontWeight: '800',
   },
 });
